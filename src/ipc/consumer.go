@@ -23,7 +23,7 @@ import (
 const (
 	DEFAULT_NSQLOOKUPD = "127.0.0.1:4160"
 	ENV_NSQLOOKUPD     = "NSQLOOKUPD_HOST"
-	DEFAULT_ETCD       = "127.0.0.1:2379"
+	DEFAULT_ETCD       = "http://127.0.0.1:2379"
 	NSQ_IN_FLIGHT      = 128
 )
 
