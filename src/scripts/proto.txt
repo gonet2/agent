@@ -1,0 +1,44 @@
+# 该文件规定客户端和服务之间的通信结构体模式.注释必须独占一行!!!!!
+#
+# 基本类型 : integer float string boolean
+# 格式如下所示.若要定义数组，查找array看看已有定义你懂得.
+#
+# 每一个定义以'==='分割
+# 紧接一行注释 #描述这个逻辑结构用来干啥.
+# 然后定义结构名字，以'='结束，这样可以grep '=' 出全部逻辑名字.
+# 之后每一行代表一个成员定义.
+#
+# 发布代码前请确保这些部分最新.
+#
+
+#一般性回复payload,0代表成功
+
+
+#用户登陆发包 1代表使用uuid登陆 2代表使用客户端证书登陆
+user_login_info=
+login_way integer
+open_udid string
+client_certificate string
+client_version integer
+user_lang string
+app_id string
+os_verson string
+device_name string
+device_id string
+device_id_type integer
+login_ip string
+===
+
+#通信加密种子
+pike_seed_info=
+client_send_seed integer
+client_receive_seed integer
+===
+
+#用户信息包
+user_snapshot=
+uid integer
+name string
+level integer 
+current_exp integer 
+===
