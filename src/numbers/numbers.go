@@ -102,17 +102,18 @@ func (ns *numbers) watcher() {
 		ns.client_pool.Put(client)
 	}()
 
-	ch := make(chan *etcd.Response, 10)
-	go func() {
-		for {
-			if resp, ok := <-ch; ok {
-				ns.parse(resp.Node.Key, resp.Node.Value)
-				log.Trace("csv change:", resp.Node.Key)
-			}
-		}
-	}()
-
 	for {
+		ch := make(chan *etcd.Response, 10)
+		go func() {
+			for {
+				if resp, ok := <-ch; ok {
+					ns.parse(resp.Node.Key, resp.Node.Value)
+					log.Trace("csv change:", resp.Node.Key)
+				} else {
+					return
+				}
+			}
+		}()
 		_, err := client.Watch(DEFAULT_NUMBERS_PATH, 0, true, ch, nil)
 		if err != nil {
 			log.Critical(err)
