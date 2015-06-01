@@ -4,12 +4,10 @@ import (
 	"fmt"
 	log "github.com/GameGophers/nsq-logger"
 	nsq "github.com/bitly/go-nsq"
-	"github.com/coreos/go-etcd/etcd"
 	"golang.org/x/net/context"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"os"
 	"strings"
-	"sync"
 )
 
 import (
@@ -22,7 +20,6 @@ import (
 const (
 	DEFAULT_NSQLOOKUPD = "127.0.0.1:4160"
 	ENV_NSQLOOKUPD     = "NSQLOOKUPD_HOST"
-	DEFAULT_ETCD       = "http://127.0.0.1:2379"
 	NSQ_IN_FLIGHT      = 128
 )
 
@@ -41,20 +38,9 @@ func init() {
 	ic.init()
 }
 
-type IPCConsumer struct {
-	client_pool sync.Pool
-}
+type IPCConsumer struct{}
 
 func (ic *IPCConsumer) init() {
-	// etcd client
-	machines := []string{DEFAULT_ETCD}
-	if env := os.Getenv("ETCD_HOST"); env != "" {
-		machines = strings.Split(env, ";")
-	}
-	ic.client_pool.New = func() interface{} {
-		return etcd.NewClient(machines)
-	}
-
 	// rank change subscriber
 	channel := ic.create_ephermal_channel()
 	ic.init_subscriber(UNICAST, channel)
