@@ -6,9 +6,7 @@ import (
 	nsq "github.com/bitly/go-nsq"
 	"github.com/coreos/go-etcd/etcd"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 	"gopkg.in/vmihailenco/msgpack.v2"
-	"math/rand"
 	"os"
 	"strings"
 	"sync"
@@ -16,7 +14,8 @@ import (
 
 import (
 	"registry"
-	services "services/proto"
+	"services"
+	"services/proto"
 	. "types"
 )
 
@@ -64,39 +63,17 @@ func (ic *IPCConsumer) init() {
 }
 
 func (ic *IPCConsumer) create_ephermal_channel() string {
-	client := ic.client_pool.Get().(*etcd.Client)
-	defer func() {
-		ic.client_pool.Put(client)
-	}()
-	resp, err := client.Get(SNOWFLAKE_SERVICE_NAME, false, true)
+	c, err := services.GetSnowflake()
 	if err != nil {
 		log.Critical(err)
 		os.Exit(-1)
 	}
 
-	// random choose a service
-	if len(resp.Node.Nodes) == 0 {
-		log.Critical("snowflake service not started yet?")
-		os.Exit(-1)
-	}
-
-	// dial grpc
-	conn, err := grpc.Dial(resp.Node.Nodes[rand.Intn(len(resp.Node.Nodes))].Value)
-	if err != nil {
-		log.Critical("did not connect: %v", err)
-		os.Exit(-1)
-	}
-
-	// save client
-	c := services.NewSnowflakeServiceClient(conn)
-	// create consumer from lookupds
-	r, err := c.GetUUID(context.Background(), &services.Snowflake_NullRequest{})
+	r, err := c.GetUUID(context.Background(), &proto.Snowflake_NullRequest{})
 	if err != nil {
 		log.Critical(err)
 		os.Exit(-1)
 	}
-	defer conn.Close()
-
 	return fmt.Sprintf("IPC%v#ephemeral", r.Uuid)
 }
 
