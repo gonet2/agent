@@ -29,10 +29,6 @@ const (
 	BROADCAST = "broadcast"
 )
 
-const (
-	SNOWFLAKE_SERVICE_NAME = "/backends/snowflake"
-)
-
 func init() {
 	ic := IPCConsumer{}
 	ic.init()
