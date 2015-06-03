@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -34,13 +35,13 @@ type client struct {
 
 type service struct {
 	clients []client
-	idx     int
+	idx     uint32
 }
 
 type service_pool struct {
 	services    map[string]*service
 	client_pool sync.Pool
-	sync.Mutex
+	sync.RWMutex
 }
 
 var (
@@ -176,9 +177,51 @@ func (p *service_pool) remove_service(key string) {
 	}
 }
 
+// provide a specific key for a service
+// service must be stored like /backends/xxx_service/xxx_id
+func (p *service_pool) get_service_with_id(service_name, id string) (interface{}, error) {
+	p.RLock()
+	defer p.RUnlock()
+	name := DEFAULT_SERVICE_PATH + "/" + service_name
+	service := p.services[name]
+	if service == nil {
+		return nil, ERROR_SERVICE_NOT_AVAILABLE
+	}
+
+	if len(service.clients) == 0 {
+		return nil, ERROR_SERVICE_NOT_AVAILABLE
+	}
+
+	var conn *grpc.ClientConn
+	fullpath := name + "/" + id
+	for k := range service.clients {
+		if service.clients[k].key == fullpath {
+			conn = service.clients[k].conn
+			break
+		}
+	}
+
+	if conn == nil {
+		return nil, ERROR_SERVICE_NOT_AVAILABLE
+	}
+
+	// add wrappers here ...
+	switch ServiceType(name) {
+	case SERVICE_SNOWFLAKE:
+		return proto.NewSnowflakeServiceClient(conn), nil
+	case SERVICE_GEOIP:
+		return proto.NewGeoIPServiceClient(conn), nil
+	case SERVICE_WORDFILTER:
+		return proto.NewWordFilterServiceClient(conn), nil
+	case SERVICE_BGSAVE:
+		return proto.NewBgSaveServiceClient(conn), nil
+	}
+	return nil, ERROR_SERVICE_NOT_AVAILABLE
+}
+
 func (p *service_pool) get_service(name ServiceType) (interface{}, error) {
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 	service := p.services[string(name)]
 	if service == nil {
 		return nil, ERROR_SERVICE_NOT_AVAILABLE
@@ -187,23 +230,28 @@ func (p *service_pool) get_service(name ServiceType) (interface{}, error) {
 	if len(service.clients) == 0 {
 		return nil, ERROR_SERVICE_NOT_AVAILABLE
 	}
-	service.idx++
+	idx := int(atomic.AddUint32(&service.idx, 1))
 
 	// add wrappers here ...
 	switch name {
 	case SERVICE_SNOWFLAKE:
-		return proto.NewSnowflakeServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+		return proto.NewSnowflakeServiceClient(service.clients[idx%len(service.clients)].conn), nil
 	case SERVICE_GEOIP:
-		return proto.NewGeoIPServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+		return proto.NewGeoIPServiceClient(service.clients[idx%len(service.clients)].conn), nil
 	case SERVICE_WORDFILTER:
-		return proto.NewWordFilterServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+		return proto.NewWordFilterServiceClient(service.clients[idx%len(service.clients)].conn), nil
 	case SERVICE_BGSAVE:
-		return proto.NewBgSaveServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+		return proto.NewBgSaveServiceClient(service.clients[idx%len(service.clients)].conn), nil
 	}
 	return nil, ERROR_SERVICE_NOT_AVAILABLE
 }
 
-// wrappers
+// choose a service randomly
 func GetService(name ServiceType) (interface{}, error) {
 	return _default_pool.get_service(name)
+}
+
+// get a specific service instance with given service_name and id
+func GetServiceWithId(service_name, id string) (interface{}, error) {
+	return _default_pool.get_service_with_id(service_name, id)
 }
