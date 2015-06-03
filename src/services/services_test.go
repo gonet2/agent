@@ -6,7 +6,7 @@ import (
 )
 
 func TestService(t *testing.T) {
-	if _, err := _default_pool.get_snowflake(); err != nil {
+	if _, err := GetService(SERVICE_SNOWFLAKE); err != nil {
 		t.Log(err)
 	}
 	<-time.After(time.Hour)

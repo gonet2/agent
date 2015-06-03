@@ -32,10 +32,14 @@ type client struct {
 	conn *grpc.ClientConn
 }
 
+type service struct {
+	clients []client
+	idx     int
+}
+
 type service_pool struct {
-	snowflakes     []client
-	snowflakes_idx int
-	client_pool    sync.Pool
+	services    map[string]*service
+	client_pool sync.Pool
 	sync.Mutex
 }
 
@@ -58,6 +62,8 @@ func (p *service_pool) init() {
 	p.client_pool.New = func() interface{} {
 		return etcd.NewClient(machines)
 	}
+
+	p.services = make(map[string]*service)
 }
 
 // connect to all services
@@ -84,44 +90,13 @@ func (p *service_pool) connect_all(directory string) {
 	for _, node := range resp.Node.Nodes {
 		if node.Dir { // service directory
 			for _, service := range node.Nodes {
-				log.Tracef("add node: %v %v", service.Key, service.Value)
-				p.add_node(service.Key, service.Value)
+				p.add_service(service.Key, service.Value)
 			}
 		} else {
 			log.Warning("malformed service directory:", node.Key)
 		}
 	}
-	log.Trace("connected to all services")
-}
-
-func (p *service_pool) delete_node(key string) {
-	p.Lock()
-	defer p.Unlock()
-	switch filepath.Dir(key) {
-	case DEFAULT_SERVICE_PATH + "/snowflake":
-		for k := range p.snowflakes {
-			if p.snowflakes[k].key == key { // deletion
-				p.snowflakes[k].conn.Close()
-				p.snowflakes = append(p.snowflakes[:k], p.snowflakes[k+1:]...)
-				return
-			}
-		}
-	}
-}
-
-func (p *service_pool) add_node(key, value string) {
-	p.Lock()
-	defer p.Unlock()
-	switch filepath.Dir(key) {
-	case DEFAULT_SERVICE_PATH + "/snowflake":
-		if conn, err := grpc.Dial(value, grpc.WithTimeout(DEFAULT_DIAL_TIMEOUT)); err == nil {
-			p.snowflakes = append(p.snowflakes, client{key, conn})
-		} else {
-			log.Errorf("did not connect: %v %v err: %v", key, value, err)
-		}
-	default:
-		log.Warningf("service not recongized: %v %v", key, value)
-	}
+	log.Info("services add complete")
 }
 
 // watcher for data change in etcd directory
@@ -142,10 +117,10 @@ func (p *service_pool) watcher() {
 					key, value := resp.Node.Key, resp.Node.Value
 					if value == "" {
 						log.Tracef("node delete: %v", key)
-						p.delete_node(key)
+						p.remove_service(key)
 					} else {
 						log.Tracef("node add: %v %v", key, value)
-						p.add_node(key, value)
+						p.add_service(key, value)
 					}
 				} else {
 					return
@@ -161,18 +136,74 @@ func (p *service_pool) watcher() {
 	}
 }
 
-func (p *service_pool) get_snowflake() (proto.SnowflakeServiceClient, error) {
+// add a service
+func (p *service_pool) add_service(key, value string) {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.snowflakes) == 0 {
+	service_name := filepath.Dir(key)
+	if p.services[service_name] == nil {
+		p.services[service_name] = &service{}
+		log.Tracef("new service type: %v", service_name)
+	}
+	service := p.services[service_name]
+
+	if conn, err := grpc.Dial(value, grpc.WithTimeout(DEFAULT_DIAL_TIMEOUT)); err == nil {
+		service.clients = append(service.clients, client{key, conn})
+		log.Tracef("service added: %v -- %v", key, value)
+	} else {
+		log.Errorf("did not connect: %v -- %v err: %v", key, value, err)
+	}
+}
+
+// remove a service
+func (p *service_pool) remove_service(key string) {
+	p.Lock()
+	defer p.Unlock()
+	service_name := filepath.Dir(key)
+	service := p.services[service_name]
+	if service == nil {
+		log.Tracef("no such service %v", service_name)
+		return
+	}
+
+	for k := range service.clients {
+		if service.clients[k].key == key { // deletion
+			service.clients[k].conn.Close()
+			service.clients = append(service.clients[:k], service.clients[k+1:]...)
+			log.Tracef("service removed %v", key)
+			return
+		}
+	}
+}
+
+func (p *service_pool) get_service(name ServiceType) (interface{}, error) {
+	p.Lock()
+	defer p.Unlock()
+	service := p.services[string(name)]
+	if service == nil {
 		return nil, ERROR_SERVICE_NOT_AVAILABLE
 	}
 
-	p.snowflakes_idx++
-	return proto.NewSnowflakeServiceClient(p.snowflakes[p.snowflakes_idx%len(p.snowflakes)].conn), nil
+	if len(service.clients) == 0 {
+		return nil, ERROR_SERVICE_NOT_AVAILABLE
+	}
+	service.idx++
+
+	// add wrappers here ...
+	switch name {
+	case SERVICE_SNOWFLAKE:
+		return proto.NewSnowflakeServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+	case SERVICE_GEOIP:
+		return proto.NewGeoIPServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+	case SERVICE_WORDFILTER:
+		return proto.NewWordFilterServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+	case SERVICE_BGSAVE:
+		return proto.NewBgSaveServiceClient(service.clients[service.idx%len(service.clients)].conn), nil
+	}
+	return nil, ERROR_SERVICE_NOT_AVAILABLE
 }
 
 // wrappers
-func GetSnowflake() (proto.SnowflakeServiceClient, error) {
-	return _default_pool.get_snowflake()
+func GetService(name ServiceType) (interface{}, error) {
+	return _default_pool.get_service(name)
 }

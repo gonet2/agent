@@ -45,13 +45,18 @@ func (ic *IPCConsumer) init() {
 }
 
 func (ic *IPCConsumer) create_ephermal_channel() string {
-	c, err := services.GetSnowflake()
+	c, err := services.GetService(services.SERVICE_SNOWFLAKE)
 	if err != nil {
 		log.Critical(err)
 		os.Exit(-1)
 	}
+	service, ok := c.(proto.SnowflakeServiceClient)
+	if !ok {
+		log.Critical("internal error:", c)
+		os.Exit(-1)
+	}
 
-	r, err := c.GetUUID(context.Background(), &proto.Snowflake_NullRequest{})
+	r, err := service.GetUUID(context.Background(), &proto.Snowflake_NullRequest{})
 	if err != nil {
 		log.Critical(err)
 		os.Exit(-1)
