@@ -98,7 +98,7 @@ func (ic *IPCConsumer) init_subscriber(topic, channel string) {
 		log.Critical(err)
 		return
 	}
-	log.Info("nsqlookupd connected for unicast")
+	log.Info("nsqlookupd connected")
 }
 
 func (ic *IPCConsumer) unicast(msg *nsq.Message) {
