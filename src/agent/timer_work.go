@@ -1,8 +1,9 @@
 package main
 
 import (
-	log "github.com/GameGophers/nsq-logger"
 	"time"
+
+	log "github.com/GameGophers/nsq-logger"
 )
 
 import (

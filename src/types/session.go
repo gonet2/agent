@@ -26,7 +26,7 @@ type Session struct {
 
 	// TODO : 玩家数据
 	UserId int32
-	//
+	User   *User //玩家数据
 
 	// 会话标记
 	Flag int32
@@ -45,4 +45,18 @@ type Session struct {
 	DeviceName   string
 	DeviceId     string
 	DeviceIdType int32
+
+	_dirtycount int32
+}
+
+func (sess *Session) MarkDirty() {
+	sess._dirtycount++
+}
+
+func (sess *Session) DirtyCount() int32 {
+	return sess._dirtycount
+}
+
+func (sess *Session) MarkClean() {
+	sess._dirtycount = 0
 }

@@ -1,10 +1,11 @@
 package main
 
 import (
-	log "github.com/GameGophers/nsq-logger"
-	"github.com/peterbourgon/g2s"
 	"os"
 	"time"
+
+	log "github.com/GameGophers/nsq-logger"
+	"github.com/peterbourgon/g2s"
 )
 
 import (
@@ -141,4 +142,7 @@ func _after_hook(sess *Session, rcode int16) {
 	if sess.Flag&SESS_LOGGED_IN == 0 {
 		return
 	}
+
+	//check need flush to db or not
+	_flush(sess, rcode)
 }
