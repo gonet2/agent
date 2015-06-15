@@ -9,9 +9,10 @@ import (
 	"time"
 	. "types"
 
+	"gopkg.in/vmihailenco/msgpack.v2"
+
 	log "github.com/GameGophers/nsq-logger"
 	"github.com/fzzy/radix/redis"
-	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 var (
@@ -27,7 +28,7 @@ var (
 )
 
 //需要即时刷入的协议-数据表, 需要map所有表。
-var _instant_flush_tbl = map[string]map[string]int8{
+var _flush_tbl = map[string]map[string]int8{
 	"user_login_req": map[string]int8{"users": 0, "buildings": 0},
 }
 
@@ -48,34 +49,23 @@ func init() {
 }
 
 //--------------------------------------------- flush user data, query tbl data type (strong/weak interactive) to flush
-func _flush(sess *Session, rcode int16) {
+func flush(sess *Session, rcode int16) {
 	api := client_handler.RCode[rcode]
 	log.Info("flush data user: %s, code: %s, api: %s", sess.UserId, rcode, api)
-	if _instant_flush_tbl[api] != nil {
-		_save2db(sess, _instant_flush_tbl[api])
+	if _flush_tbl[api] != nil {
+		save2db(sess, _flush_tbl[api])
 	}
 }
 
-func _save2db(sess *Session, tbl map[string]int8) {
-	is_instant := false
-	save_table := make(map[string]int8)
-	for k, v := range tbl {
-		if v == 1 {
-			is_instant = true
-			save_table[k] = v
-		}
-
-	}
-
-	if is_instant == false {
-		if sess.DirtyCount() < int32(FLUSH_OPS) && (time.Now().Unix()-sess.User.LastSaveTime < int64(FLUSH_INTERVAL)) {
-			return
-		}
-		save_table = tbl
-	}
-	for table, _ := range save_table {
+func save2db(sess *Session, tbl map[string]int8) {
+	for table, is_instant := range tbl {
 		switch table {
 		case "users":
+			if is_instant == 0 {
+				if sess.DirtyCount() < int32(FLUSH_OPS) && (time.Now().Unix()-sess.User.LastSaveTime < int64(FLUSH_INTERVAL)) {
+					continue
+				}
+			}
 			if sess.User != nil {
 				sess.User.LastSaveTime = time.Now().Unix()
 				// save to redis.
@@ -89,7 +79,7 @@ func _save2db(sess *Session, tbl map[string]int8) {
 					log.Error(err)
 				}
 				log.Info("flush user:%s reply: %s", sess.User.Id, reply)
-				//TODO send dirty key to bgsave
+				//TODO send dirty key to bgsave, need to do frequency control
 
 			}
 			//TODO other table need to save.

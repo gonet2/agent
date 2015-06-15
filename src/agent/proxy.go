@@ -144,5 +144,5 @@ func _after_hook(sess *Session, rcode int16) {
 	}
 
 	//check need flush to db or not
-	_flush(sess, rcode)
+	flush(sess, rcode)
 }
