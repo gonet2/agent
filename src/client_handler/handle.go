@@ -1,11 +1,18 @@
 package client_handler
 
 import (
-	log "github.com/GameGophers/nsq-logger"
+	"fmt"
 	"math/big"
+	"proto"
+	"services"
+
+	"golang.org/x/net/context"
+
+	log "github.com/GameGophers/nsq-logger"
 )
 
 import (
+	"db"
 	"misc/crypto/dh"
 	"misc/crypto/pike"
 	"misc/packet"
@@ -38,7 +45,48 @@ func P_get_pike_seed_req(sess *Session, reader *packet.Packet) []byte {
 
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
-	return nil
+	tbl, _ := PKT_user_login_info(reader)
+	cli, err := services.GetService(services.SERVICE_LOGIN)
+	if err != nil {
+		log.Critical(err)
+		return packet.Pack(Code["command_result_info"], command_result_info{F_code: 1, F_msg: "login service err"}, nil)
+	}
+	service, _ := cli.(proto.LoginServiceClient)
+	user_login := &proto.User_Login{
+		Uuid:          tbl.F_open_udid,
+		Host:          "",
+		LoginType:     tbl.F_login_way,
+		Cert:          tbl.F_client_certificate,
+		ClientVersion: string(tbl.F_client_version),
+		Lang:          tbl.F_user_lang,
+		Appid:         tbl.F_app_id,
+		OsVersion:     tbl.F_os_version,
+		DeviceName:    tbl.F_device_name,
+		DeviceId:      tbl.F_device_id,
+		LoginIp:       tbl.F_login_ip,
+	}
+	r, err := service.Login(context.Background(), user_login)
+	if err != nil {
+		log.Critical(err)
+		return packet.Pack(Code["command_result_info"], command_result_info{F_code: 0, F_msg: "login faild"}, nil)
+	}
+	sess.UserId = r.Uid
+	user := &User{}
+	if r.NewUser == true {
+		//TODO create new user, add save to redis
+		user = &User{
+			Id:    r.Uid,
+			Name:  fmt.Sprintf("user%s", r.Uid),
+			Level: 1,
+		}
+		db.Client.Set("users", user.Id, user)
+	} else {
+		//load user from redis
+		db.Client.Get("users", r.Uid, user)
+	}
+	sess.User = user
+
+	return packet.Pack(Code["user_snapshot"], user_snapshot{F_uid: user.Id, F_name: user.Name, F_level: int32(user.Level)}, nil)
 }
 
 func checkErr(err error) {

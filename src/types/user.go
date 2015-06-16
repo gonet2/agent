@@ -8,6 +8,7 @@ type User struct {
 	Id             int32  // 用户id
 	Domain         string // 玩家所在分服
 	Name           string // 用户名
+	Level          int8   //等级
 	Flag           int32  // 状态标记
 	Pass           []byte // 密码(MD5 Hash)
 	Score          int32  // 分数

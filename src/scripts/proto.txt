@@ -12,7 +12,10 @@
 #
 
 #一般性回复payload,0代表成功
-
+command_result_info=
+code integer
+msg string
+===
 
 #用户登陆发包 1代表使用uuid登陆 2代表使用客户端证书登陆
 user_login_info=
@@ -22,7 +25,7 @@ client_certificate string
 client_version integer
 user_lang string
 app_id string
-os_verson string
+os_version string
 device_name string
 device_id string
 device_id_type integer

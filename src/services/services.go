@@ -2,15 +2,16 @@ package services
 
 import (
 	"errors"
-	log "github.com/GameGophers/nsq-logger"
-	"github.com/coreos/go-etcd/etcd"
-	"google.golang.org/grpc"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	log "github.com/GameGophers/nsq-logger"
+	"github.com/coreos/go-etcd/etcd"
+	"google.golang.org/grpc"
 )
 
 import (
@@ -215,6 +216,8 @@ func (p *service_pool) get_service_with_id(service_name, id string) (interface{}
 		return proto.NewWordFilterServiceClient(conn), nil
 	case SERVICE_BGSAVE:
 		return proto.NewBgSaveServiceClient(conn), nil
+	case SERVICE_LOGIN:
+		return proto.NewLoginServiceClient(conn), nil
 	}
 	return nil, ERROR_SERVICE_NOT_AVAILABLE
 }
@@ -242,6 +245,8 @@ func (p *service_pool) get_service(name ServiceType) (interface{}, error) {
 		return proto.NewWordFilterServiceClient(service.clients[idx%len(service.clients)].conn), nil
 	case SERVICE_BGSAVE:
 		return proto.NewBgSaveServiceClient(service.clients[idx%len(service.clients)].conn), nil
+	case SERVICE_LOGIN:
+		return proto.NewLoginServiceClient(service.clients[idx%len(service.clients)].conn), nil
 	}
 	return nil, ERROR_SERVICE_NOT_AVAILABLE
 }
