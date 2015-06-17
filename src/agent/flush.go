@@ -10,7 +10,7 @@ import (
 	log "github.com/GameGophers/nsq-logger"
 	"github.com/fzzy/radix/redis"
 
-	"db"
+	"github.com/GameGophers/libs/db"
 )
 
 var (

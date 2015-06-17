@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"proto"
-	"services"
 
 	"golang.org/x/net/context"
 
@@ -12,11 +11,13 @@ import (
 )
 
 import (
-	"db"
 	"misc/crypto/dh"
 	"misc/crypto/pike"
 	"misc/packet"
 	. "types"
+
+	"github.com/GameGophers/libs/db"
+	"github.com/GameGophers/libs/services"
 )
 
 // 心跳包

@@ -2,19 +2,21 @@ package ipc
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	log "github.com/GameGophers/nsq-logger"
 	nsq "github.com/bitly/go-nsq"
 	"golang.org/x/net/context"
 	"gopkg.in/vmihailenco/msgpack.v2"
-	"os"
-	"strings"
 )
 
 import (
 	"registry"
-	"services"
-	"services/proto"
 	. "types"
+
+	"github.com/GameGophers/libs/services"
+	"github.com/GameGophers/libs/services/proto"
 )
 
 const (

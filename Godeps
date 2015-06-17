@@ -10,3 +10,4 @@ gopkg.in/mgo.v2 r2015.01.24
 github.com/fzzy/radix/redis 031cc11e9800a2626ee2ae629655a922b630a07d
 github.com/davecgh/go-spew/spew f9f629a1d082960e5d1747f33c2b378612615fea
 github.com/peterbourgon/g2s ec76db4c1ac16400ac0e17ca9c4840e1d23da5dc
+github.com/GameGophers/libs HEAD
