@@ -79,10 +79,10 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 			Name:  fmt.Sprintf("user%s", r.Uid),
 			Level: 1,
 		}
-		db.Client.Set("users", user.Id, user)
+		db.Redis.Set("users", user.Id, user)
 	} else {
 		//load user from redis
-		db.Client.Get("users", r.Uid, user)
+		db.Redis.Get("users", r.Uid, user)
 	}
 	sess.User = user
 

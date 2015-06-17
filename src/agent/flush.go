@@ -47,7 +47,7 @@ func save2db(sess *Session, tbl map[string]int8) {
 			}
 			if sess.User != nil {
 				sess.User.LastSaveTime = time.Now().Unix()
-				err := db.Client.Set(table, sess.User.Id, sess.User)
+				err := db.Redis.Set(table, sess.User.Id, sess.User)
 				if err != nil {
 					log.Error(err)
 				}

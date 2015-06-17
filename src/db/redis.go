@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DEFAULT_REDIS_HOST = "127.0.0.1:7100"
+	DEFAULT_REDIS_HOST = "127.0.0.1:6379"
 	ENV_REDIS_HOST     = "REDIS_HOST"
 )
 
@@ -19,10 +19,10 @@ type db struct {
 	redis_client *redis.Client
 }
 
-var Client *db
+var Redis *db
 
 func init() {
-	redisdb := db{}
+	Redis = &db{}
 	// read redis host
 	redis_host := DEFAULT_REDIS_HOST
 	if env := os.Getenv(ENV_REDIS_HOST); env != "" {
@@ -34,12 +34,12 @@ func init() {
 		log.Critical(err)
 		os.Exit(-1)
 	}
-	redisdb.redis_client = client
+	Redis.redis_client = client
 
 }
 
 func (s *db) Get(tbl string, uid int32, data interface{}) error {
-	raw, err := s.redis_client.Cmd("GET", fmt.Sprintf("%s:%s", tbl, uid)).Bytes()
+	raw, err := s.redis_client.Cmd("GET", Key(tbl, uid)).Bytes()
 	if err != nil {
 		log.Critical(err)
 		return err
@@ -59,10 +59,18 @@ func (s *db) Set(tbl string, uid int32, data interface{}) error {
 		log.Critical(err)
 		return err
 	}
-	_, err = s.redis_client.Cmd("SET", fmt.Sprintf("%s:%s", tbl, uid), bin).Str()
+	_, err = s.redis_client.Cmd("SET", Key(tbl, uid), bin).Str()
 	if err != nil {
 		log.Critical(err)
 		return err
 	}
 	return nil
+}
+
+func Key(tbl string, uid int32) string {
+	if tbl == "" || uid == 0 {
+		log.Critical("Key error: %+v: %+v", tbl, uid)
+		return ""
+	}
+	return fmt.Sprintf("%s:%s", tbl, uid)
 }
