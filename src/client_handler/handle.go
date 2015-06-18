@@ -1,13 +1,10 @@
 package client_handler
 
 import (
-	"fmt"
+	"logic"
 	"math/big"
-	"proto"
 
 	"golang.org/x/net/context"
-
-	log "github.com/GameGophers/nsq-logger"
 )
 
 import (
@@ -16,8 +13,9 @@ import (
 	"misc/packet"
 	. "types"
 
-	"github.com/GameGophers/libs/db"
 	"github.com/GameGophers/libs/services"
+	proto "github.com/GameGophers/libs/services/proto"
+	log "github.com/GameGophers/nsq-logger"
 )
 
 // 心跳包
@@ -53,18 +51,12 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 		return packet.Pack(Code["command_result_info"], command_result_info{F_code: 1, F_msg: "login service err"}, nil)
 	}
 	service, _ := cli.(proto.LoginServiceClient)
-	user_login := &proto.User_Login{
-		Uuid:          tbl.F_open_udid,
-		Host:          "",
-		LoginType:     tbl.F_login_way,
-		Cert:          tbl.F_client_certificate,
-		ClientVersion: string(tbl.F_client_version),
-		Lang:          tbl.F_user_lang,
-		Appid:         tbl.F_app_id,
-		OsVersion:     tbl.F_os_version,
-		DeviceName:    tbl.F_device_name,
-		DeviceId:      tbl.F_device_id,
-		LoginIp:       tbl.F_login_ip,
+	user_login := &proto.User_LoginInfo{
+		Uuid:      tbl.F_open_udid,
+		Host:      "agent1",
+		LoginType: tbl.F_login_way,
+		Username:  tbl.F_open_udid,
+		Passwd:    tbl.F_client_certificate,
 	}
 	r, err := service.Login(context.Background(), user_login)
 	if err != nil {
@@ -74,18 +66,16 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	sess.UserId = r.Uid
 	user := &User{}
 	if r.NewUser == true {
-		//TODO create new user, add save to redis
-		user = &User{
-			Id:    r.Uid,
-			Name:  fmt.Sprintf("user%s", r.Uid),
-			Level: 1,
+		if err := logic.UserInit(r.Uid, sess); err != nil {
+			log.Critical("init user error %v", err)
+			return nil
 		}
-		db.Redis.Set("users", user.Id, user)
 	} else {
-		//load user from redis
-		db.Redis.Get("users", r.Uid, user)
+		if err := logic.UserLoad(r.Uid, sess); err != nil {
+			log.Critical("init user error %v", err)
+			return nil
+		}
 	}
-	sess.User = user
 
 	return packet.Pack(Code["user_snapshot"], user_snapshot{F_uid: user.Id, F_name: user.Name, F_level: int32(user.Level)}, nil)
 }
