@@ -2,7 +2,7 @@ package ipc
 
 import (
 	"bytes"
-	log "github.com/GameGophers/nsq-logger"
+	log "github.com/GameGophers/libs/nsq-logger"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"net/http"
 	"os"

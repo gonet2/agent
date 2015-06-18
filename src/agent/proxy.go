@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	log "github.com/GameGophers/nsq-logger"
+	log "github.com/GameGophers/libs/nsq-logger"
 	"github.com/peterbourgon/g2s"
 )
 

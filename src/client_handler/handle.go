@@ -13,9 +13,9 @@ import (
 	"misc/packet"
 	. "types"
 
+	log "github.com/GameGophers/libs/nsq-logger"
 	"github.com/GameGophers/libs/services"
 	proto "github.com/GameGophers/libs/services/proto"
-	log "github.com/GameGophers/nsq-logger"
 )
 
 // 心跳包

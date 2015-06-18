@@ -5,7 +5,7 @@ import (
 	. "types"
 
 	"github.com/GameGophers/libs/db"
-	log "github.com/GameGophers/nsq-logger"
+	log "github.com/GameGophers/libs/nsq-logger"
 )
 
 func UserInit(uid int32, sess *Session) error {

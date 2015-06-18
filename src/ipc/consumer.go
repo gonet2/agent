@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/GameGophers/nsq-logger"
+	log "github.com/GameGophers/libs/nsq-logger"
 	nsq "github.com/bitly/go-nsq"
 	"golang.org/x/net/context"
 	"gopkg.in/vmihailenco/msgpack.v2"
