@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/binary"
 	log "github.com/GameGophers/libs/nsq-logger"
+	_ "github.com/GameGophers/libs/statsd-pprof"
 	"io"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"time"
 )
