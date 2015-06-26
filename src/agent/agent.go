@@ -1,14 +1,11 @@
 package main
 
 import (
-	"io"
 	"misc/packet"
 	"time"
 
 	log "github.com/GameGophers/libs/nsq-logger"
-	"github.com/GameGophers/libs/services"
 	"github.com/GameGophers/libs/services/proto"
-	"golang.org/x/net/context"
 )
 
 import (
@@ -16,8 +13,12 @@ import (
 	"utils"
 )
 
+const (
+	PROTO_RANGE = 1000 //协议处理范围
+)
+
 // agent of user
-func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
+func agent(sess *Session, in chan []byte, out *Buffer, stream proto.GameService_PacketClient, recv_chan chan *proto.Game_Packet, sess_die chan bool) {
 	defer wg.Done()
 	defer utils.PrintPanicStack()
 
@@ -34,20 +35,6 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 		close(sess_die)
 	}()
 
-	//proxy the request to game service.
-	cli, err := services.GetService(services.SERVICE_GAME)
-	if err != nil {
-		log.Critical(err)
-		return
-	}
-	service, _ := cli.(proto.GameServiceClient)
-	stream, err := service.Packet(context.Background())
-	if err != nil {
-		log.Critical(err)
-		return
-	}
-	defer stream.CloseSend()
-
 	// >> the main message loop <<
 	for {
 		select {
@@ -63,7 +50,7 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 			reader.ReadU32()
 			c, _ := reader.ReadS16()
 			switch {
-			case c <= 1000:
+			case c <= PROTO_RANGE:
 				if result := proxy_user_request(sess, msg); result != nil {
 					out.send(sess, result)
 				}
@@ -72,24 +59,17 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 					Uid:     sess.UserId,
 					Content: reader.Data(),
 				}
-				go func() {
-					recv, err := stream.Recv()
-					if err == io.EOF {
-						log.Criticalf("EOF recv %v", err)
-						return
-					}
-					if err != nil {
-						log.Criticalf("Failed to recv pkt %v", err)
-
-					}
-					out.send(sess, recv.Content)
-				}()
-				if err = stream.Send(p); err != nil {
+				if err := stream.Send(p); err != nil {
 					log.Criticalf("Failed to send pkt %v", err)
 				}
 			}
-
 			sess.LastPacketTime = sess.PacketTime
+
+		case recv := <-recv_chan:
+			if recv.Content != nil {
+				out.send(sess, recv.Content)
+			}
+
 		case msg := <-sess.MQ: // message from server internal IPC
 			if result := proxy_ipc_request(sess, msg); result != nil {
 				out.send(sess, result)
@@ -105,5 +85,16 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 		if sess.Flag&SESS_KICKED_OUT != 0 {
 			return
 		}
+	}
+}
+
+func game_service(stream proto.GameService_PacketClient, ch chan *proto.Game_Packet) {
+	for {
+		recv, err := stream.Recv()
+		if err != nil {
+			log.Criticalf("recv error :%v", err)
+			continue
+		}
+		ch <- recv
 	}
 }

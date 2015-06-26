@@ -2,13 +2,18 @@ package main
 
 import (
 	"encoding/binary"
-	log "github.com/GameGophers/libs/nsq-logger"
-	_ "github.com/GameGophers/libs/statsd-pprof"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/net/context"
+
+	log "github.com/GameGophers/libs/nsq-logger"
+	"github.com/GameGophers/libs/services"
+	pb "github.com/GameGophers/libs/services/proto"
+	_ "github.com/GameGophers/libs/statsd-pprof"
 )
 
 import (
@@ -102,13 +107,30 @@ func handleClient(conn *net.TCPConn) {
 	// session die signal
 	sess_die := make(chan bool)
 
+	//connect to game service and recv data
+	cli, err := services.GetService(services.SERVICE_GAME)
+	if err != nil {
+		log.Critical(err)
+		return
+	}
+	service, _ := cli.(pb.GameServiceClient)
+	stream, err := service.Packet(context.Background())
+	if err != nil {
+		log.Critical(err)
+		return
+	}
+	defer stream.CloseSend()
+
+	service_chan := make(chan *pb.Game_Packet, PREALLOC_BUFSIZE)
+	go game_service(stream, service_chan)
+
 	// create a write buffer
 	out := new_buffer(conn, sess_die)
 	go out.start()
 
 	// start one agent for handling packet
 	wg.Add(1)
-	go agent(&sess, in, out, sess_die)
+	go agent(&sess, in, out, stream, service_chan, sess_die)
 
 	// network loop
 	for {
