@@ -45,12 +45,12 @@ func P_get_pike_seed_req(sess *Session, reader *packet.Packet) []byte {
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	tbl, _ := PKT_user_login_info(reader)
-	cli, err := services.GetService(services.SERVICE_LOGIN)
+	cli, err := services.GetService(services.SERVICE_AUTH)
 	if err != nil {
 		log.Critical(err)
 		return packet.Pack(Code["command_result_info"], command_result_info{F_code: 1, F_msg: "login service err"}, nil)
 	}
-	service, _ := cli.(proto.LoginServiceClient)
+	service, _ := cli.(proto.AuthServiceClient)
 	user_login := &proto.User_LoginInfo{
 		Uuid:      tbl.F_open_udid,
 		Host:      "agent1",
@@ -64,14 +64,14 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 		return packet.Pack(Code["command_result_info"], command_result_info{F_code: 0, F_msg: "login faild"}, nil)
 	}
 	sess.UserId = r.Uid
-	user := &User{}
+	auth := &Auth{}
 	if r.NewUser == true {
-		if err := logic.UserInit(r.Uid, sess); err != nil {
+		if err := logic.AuthInit(r.Uid, sess); err != nil {
 			log.Critical("init user error %v", err)
 			return nil
 		}
 	} else {
-		if err := logic.UserLoad(r.Uid, sess); err != nil {
+		if err := logic.AuthLoad(r.Uid, sess); err != nil {
 			log.Critical("init user error %v", err)
 			return nil
 		}

@@ -26,7 +26,7 @@ type Session struct {
 
 	// TODO : 玩家数据
 	UserId int32
-	User   *User //玩家数据
+	Auth   *Auth //玩家帐号信息
 
 	// 会话标记
 	Flag int32
