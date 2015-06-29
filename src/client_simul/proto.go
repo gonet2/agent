@@ -2,6 +2,15 @@ package main
 
 import "misc/packet"
 
+type auto_id struct {
+	F_id int32
+}
+
+func (p auto_id) Pack(w *packet.Packet) {
+	w.WriteS32(p.F_id)
+
+}
+
 type command_result_info struct {
 	F_code int32
 	F_msg  string
@@ -67,6 +76,13 @@ func (p user_snapshot) Pack(w *packet.Packet) {
 	w.WriteS32(p.F_current_exp)
 
 }
+func PKT_auto_id(reader *packet.Packet) (tbl auto_id, err error) {
+	tbl.F_id, err = reader.ReadS32()
+	checkErr(err)
+
+	return
+}
+
 func PKT_command_result_info(reader *packet.Packet) (tbl command_result_info, err error) {
 	tbl.F_code, err = reader.ReadS32()
 	checkErr(err)

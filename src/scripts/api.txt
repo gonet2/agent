@@ -42,3 +42,6 @@ packet_type:31
 name:get_pike_seed_ack
 payload:pike_seed_info
 desc:socket通信加密使用
+
+#1000以下为agent自己处理的协议， 1000以上会交给game service 处理
+#参见game service中的api.txt

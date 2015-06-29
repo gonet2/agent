@@ -11,6 +11,11 @@
 # 发布代码前请确保这些部分最新.
 #
 
+#公共结构， 用于只传id的结构
+auto_id=
+id integer
+===
+
 #一般性回复payload,0代表成功
 command_result_info=
 code integer
@@ -45,3 +50,5 @@ name string
 level integer 
 current_exp integer 
 ===
+
+
