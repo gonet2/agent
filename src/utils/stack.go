@@ -1,7 +1,7 @@
 package utils
 
 import (
-	log "github.com/GameGophers/libs/nsq-logger"
+	log "github.com/GameGophers/nsq-logger"
 	"github.com/davecgh/go-spew/spew"
 	"runtime"
 )

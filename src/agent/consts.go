@@ -1,5 +1,9 @@
 package main
 
+import (
+	"time"
+)
+
 const (
 	// 网络拥塞控制和削峰
 	TCP_READ_DEADLINE = 120   // 秒(没有网络包进入的最大间隔)
@@ -14,13 +18,12 @@ const (
 )
 
 const (
-	DEFAULT_MQ_SIZE  = 512   // 默认玩家IPC消息队列大小
-	CUSTOM_TIMER     = 60    // 玩家定时器间隔
-	PREALLOC_BUFSIZE = 65536 // 预分配的接收缓冲
+	MAX_PROTO_NUM   = 1000 // agent能处理的最大协议号
+	DEFAULT_MQ_SIZE = 512  // 默认玩家异步消息大小
+	CUSTOM_TIMER    = 60   // 玩家定时器间隔
 )
 
 const (
-	SYS_TIMER   = 600 // 系统进程定时任务间隔(s)
-	GC_INTERVAL = 300 // 主动垃圾回收间隔
-	RPM_LIMIT   = 300 // Request Per Minute
+	RPM_LIMIT        = 300 // Request Per Minute
+	FETCHER_INTERVAL = 100 * time.Millisecond
 )

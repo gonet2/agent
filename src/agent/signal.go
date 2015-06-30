@@ -1,7 +1,7 @@
 package main
 
 import (
-	log "github.com/GameGophers/libs/nsq-logger"
+	log "github.com/GameGophers/nsq-logger"
 	"os"
 	"os/signal"
 	"sync"

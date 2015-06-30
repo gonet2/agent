@@ -1,23 +1,22 @@
 package main
 
 import (
+	"fmt"
+	log "github.com/GameGophers/nsq-logger"
+	"github.com/peterbourgon/g2s"
 	"os"
 	"time"
-
-	log "github.com/GameGophers/libs/nsq-logger"
-	"github.com/peterbourgon/g2s"
 )
 
 import (
 	"client_handler"
-	"ipc_handler"
 	"misc/packet"
 	. "types"
 	"utils"
 )
 
 const (
-	STATSD_PREFIX       = "API."
+	STATSD_PREFIX       = "API.NR"
 	ENV_STATSD          = "STATSD_HOST"
 	DEFAULT_STATSD_HOST = "127.0.0.1:8125"
 )
@@ -42,6 +41,7 @@ func init() {
 
 // client protocol handle proxy
 func proxy_user_request(sess *Session, p []byte) []byte {
+	start := time.Now()
 	defer utils.PrintPanicStack(sess, p)
 	// 解密
 	if sess.Flag&SESS_ENCRYPT != 0 {
@@ -75,74 +75,32 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		return nil
 	}
 
-	// handle有效性检查
-	h := client_handler.Handlers[b]
-	if h == nil {
-		log.Errorf("service id:%v not bind", b)
-		sess.Flag |= SESS_KICKED_OUT
-		return nil
-	}
-
-	// 前置HOOK
-	if !_before_hook(sess, b) {
-		log.Error("before hook failed, code:", b)
-		sess.Flag |= SESS_KICKED_OUT
-		return nil
-	}
-
-	// 包处理
-	start := time.Now()
-	ret := h(sess, reader)
-	end := time.Now()
-
-	// 打印协议，登陆前的协议不会打印
-	if sess.Flag&SESS_LOGGED_IN != 0 {
-		if b != 0 { // 排除心跳包日志
-			log.Trace("[REQ]", client_handler.RCode[b])
-			_statter.Timing(1.0, STATSD_PREFIX+client_handler.RCode[b], end.Sub(start))
+	var ret []byte
+	if b > MAX_PROTO_NUM { // game协议
+		// 透传
+		ret, err = forward(sess, p)
+		if err != nil {
+			log.Errorf("service id:%v execute failed", b)
+			sess.Flag |= SESS_KICKED_OUT
+			return nil
 		}
+	} else { // agent保留协议段 [0, MAX_PROTO_NUM]
+		// handle有效性检查
+		h := client_handler.Handlers[b]
+		if h == nil {
+			log.Errorf("service id:%v not bind", b)
+			sess.Flag |= SESS_KICKED_OUT
+			return nil
+		}
+		// 执行
+		ret = h(sess, reader)
 	}
 
-	// 后置HOOK
-	_after_hook(sess, b)
-
+	// 统计处理时间
+	elasped := time.Now().Sub(start)
+	if b != 0 { // 排除心跳包日志
+		log.Trace("[REQ]", b)
+		_statter.Timing(1.0, fmt.Sprintf("%v%v", STATSD_PREFIX, b), elasped)
+	}
 	return ret
-}
-
-// IPC proxy
-func proxy_ipc_request(sess *Session, p IPCObject) []byte {
-	defer utils.PrintPanicStack()
-	h := ipc_handler.Handlers[p.Service]
-
-	// 获取Handler
-	if h == nil {
-		log.Errorf("ipc service: %v not bind, internal service error.", p.Service)
-		return nil
-	}
-
-	// IPCObject处理
-	// start := time.Now()
-	ret := h(sess, p)
-	// end := time.Now()
-	// log.Printf("\033[0;36m[IPC] %v\t%v\033[0m\n", p.Service, end.Sub(start))
-	return ret
-}
-
-// 前置HOOK
-func _before_hook(sess *Session, rcode int16) bool {
-	if sess.Flag&SESS_LOGGED_IN == 0 {
-		return true
-	}
-
-	return true
-}
-
-// 后置HOOK
-func _after_hook(sess *Session, rcode int16) {
-	if sess.Flag&SESS_LOGGED_IN == 0 {
-		return
-	}
-
-	//check need flush to db or not
-	flush(sess, rcode)
 }

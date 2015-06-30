@@ -10,23 +10,19 @@ import (
 )
 
 const (
-	SESS_LOGGED_IN  = 0x1  // 玩家是否登录
-	SESS_KICKED_OUT = 0x2  // 玩家是否被服务器踢掉
-	SESS_REGISTERED = 0x4  // 是否已经执行过注册(避免恶意注册)
-	SESS_KEYEXCG    = 0x8  // 是否已经交换完毕KEY
-	SESS_ENCRYPT    = 0x10 // 是否可以开始加密
+	SESS_KEYEXCG    = 0x1 // 是否已经交换完毕KEY
+	SESS_ENCRYPT    = 0x2 // 是否可以开始加密
+	SESS_KICKED_OUT = 0x4 // 踢掉
+	SESS_AUTHORIZED = 0x8 // 已授权访问
 )
 
 type Session struct {
-	IP            net.IP
-	MQ            chan IPCObject // 玩家消息队列(系统到玩家，玩家到玩家）
-	Encoder       *pike.Pike     // 加密器
-	Decoder       *pike.Pike     // 解密器
-	ClientVersion int32          // 客户端版本
-
-	// TODO : 玩家数据
-	UserId int32
-	Auth   *Auth //玩家帐号信息
+	IP      net.IP
+	MQ      chan []byte // 返回给客户端的异步消息
+	Encoder *pike.Pike  // 加密器
+	Decoder *pike.Pike  // 解密器
+	UserId  int32       // 玩家ID
+	GSID    int32       // 游戏服ID
 
 	// 会话标记
 	Flag int32
@@ -38,25 +34,4 @@ type Session struct {
 
 	// RPS控制
 	PacketCount uint32 // 对收到的包进行计数，避免恶意发包
-
-	// ipo相关
-	AppId        string
-	OSVersion    string
-	DeviceName   string
-	DeviceId     string
-	DeviceIdType int32
-
-	_dirtycount int32
-}
-
-func (sess *Session) MarkDirty() {
-	sess._dirtycount++
-}
-
-func (sess *Session) DirtyCount() int32 {
-	return sess._dirtycount
-}
-
-func (sess *Session) MarkClean() {
-	sess._dirtycount = 0
 }

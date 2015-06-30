@@ -1,11 +1,7 @@
 package main
 
 import (
-	"misc/packet"
 	"time"
-
-	log "github.com/GameGophers/libs/nsq-logger"
-	"github.com/GameGophers/libs/services/proto"
 )
 
 import (
@@ -13,17 +9,13 @@ import (
 	"utils"
 )
 
-const (
-	PROTO_RANGE = 1000 //协议处理范围
-)
-
 // agent of user
-func agent(sess *Session, in chan []byte, out *Buffer, stream proto.GameService_PacketClient, recv_chan chan *proto.Game_Packet, sess_die chan bool) {
+func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 	defer wg.Done()
 	defer utils.PrintPanicStack()
 
 	// init session
-	sess.MQ = make(chan IPCObject, DEFAULT_MQ_SIZE)
+	sess.MQ = make(chan []byte, DEFAULT_MQ_SIZE)
 	sess.ConnectTime = time.Now()
 	sess.LastPacketTime = time.Now()
 	// minute timer
@@ -31,7 +23,6 @@ func agent(sess *Session, in chan []byte, out *Buffer, stream proto.GameService_
 
 	// cleanup work
 	defer func() {
-		close_work(sess)
 		close(sess_die)
 	}()
 
@@ -46,34 +37,12 @@ func agent(sess *Session, in chan []byte, out *Buffer, stream proto.GameService_
 			sess.PacketCount++
 			sess.PacketTime = time.Now()
 
-			reader := packet.Reader(msg)
-			reader.ReadU32()
-			c, _ := reader.ReadS16()
-			switch {
-			case c <= PROTO_RANGE:
-				if result := proxy_user_request(sess, msg); result != nil {
-					out.send(sess, result)
-				}
-			default:
-				p := &proto.Game_Packet{
-					Uid:     sess.UserId,
-					Content: reader.Data(),
-				}
-				if err := stream.Send(p); err != nil {
-					log.Criticalf("Failed to send pkt %v", err)
-				}
-			}
-			sess.LastPacketTime = sess.PacketTime
-
-		case recv := <-recv_chan:
-			if recv.Content != nil {
-				out.send(sess, recv.Content)
-			}
-
-		case msg := <-sess.MQ: // message from server internal IPC
-			if result := proxy_ipc_request(sess, msg); result != nil {
+			if result := proxy_user_request(sess, msg); result != nil {
 				out.send(sess, result)
 			}
+			sess.LastPacketTime = sess.PacketTime
+		case msg := <-sess.MQ:
+			out.send(sess, msg)
 		case <-min_timer: // minutes timer
 			timer_work(sess, out)
 			min_timer = time.After(time.Minute)
@@ -85,16 +54,5 @@ func agent(sess *Session, in chan []byte, out *Buffer, stream proto.GameService_
 		if sess.Flag&SESS_KICKED_OUT != 0 {
 			return
 		}
-	}
-}
-
-func game_service(stream proto.GameService_PacketClient, ch chan *proto.Game_Packet) {
-	for {
-		recv, err := stream.Recv()
-		if err != nil {
-			log.Criticalf("recv error :%v", err)
-			continue
-		}
-		ch <- recv
 	}
 }

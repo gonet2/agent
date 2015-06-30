@@ -9,7 +9,7 @@ import (
 )
 
 type Registry struct {
-	records map[int32]chan IPCObject
+	records map[int32]chan []byte
 	sync.RWMutex
 }
 
@@ -22,11 +22,11 @@ func init() {
 }
 
 func (r *Registry) init() {
-	r.records = make(map[int32]chan IPCObject)
+	r.records = make(map[int32]chan []byte)
 }
 
 // register a user
-func (r *Registry) Register(id int32, MQ chan IPCObject) {
+func (r *Registry) Register(id int32, MQ chan []byte) {
 	r.Lock()
 	defer r.Unlock()
 	r.records[id] = MQ
@@ -40,7 +40,7 @@ func (r *Registry) Unregister(id int32) {
 }
 
 // deliver an object to the online user
-func (r *Registry) Deliver(id int32, obj IPCObject) bool {
+func (r *Registry) Deliver(id int32, obj []byte) bool {
 	r.RLock()
 	defer r.RUnlock()
 	if mq := r.records[id]; mq != nil {
@@ -70,7 +70,7 @@ func (r *Registry) Count() int {
 	return len(r.records)
 }
 
-func Register(id int32, MQ chan IPCObject) {
+func Register(id int32, MQ chan []byte) {
 	_default_registry.Register(id, MQ)
 }
 
@@ -78,7 +78,7 @@ func Unregister(id int32) {
 	_default_registry.Unregister(id)
 }
 
-func Deliver(id int32, obj IPCObject) bool {
+func Deliver(id int32, obj []byte) bool {
 	return _default_registry.Deliver(id, obj)
 }
 

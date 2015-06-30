@@ -1,5 +1,6 @@
 package main
 
-// 服务器启动流程
+// 服务启动流程
 func startup() {
+	go fetcher_task()
 }

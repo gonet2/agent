@@ -2,23 +2,16 @@ package main
 
 import (
 	"encoding/binary"
+	log "github.com/GameGophers/nsq-logger"
 	"io"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
-
-	"golang.org/x/net/context"
-
-	log "github.com/GameGophers/libs/nsq-logger"
-	"github.com/GameGophers/libs/services"
-	pb "github.com/GameGophers/libs/services/proto"
-	_ "github.com/GameGophers/libs/statsd-pprof"
 )
 
 import (
-	_ "ipc"
-	_ "numbers"
 	. "types"
 	"utils"
 )
@@ -90,10 +83,6 @@ func handleClient(conn *net.TCPConn) {
 		close(in) // session will close
 	}()
 
-	// pre-allocated packet buffer for each connection
-	prealloc_buf := make([]byte, PREALLOC_BUFSIZE)
-	index := 0
-
 	// create a new session object for the connection
 	var sess Session
 	host, port, err := net.SplitHostPort(conn.RemoteAddr().String())
@@ -107,30 +96,13 @@ func handleClient(conn *net.TCPConn) {
 	// session die signal
 	sess_die := make(chan bool)
 
-	//connect to game service and recv data
-	cli, err := services.GetService(services.SERVICE_GAME)
-	if err != nil {
-		log.Critical(err)
-		return
-	}
-	service, _ := cli.(pb.GameServiceClient)
-	stream, err := service.Packet(context.Background())
-	if err != nil {
-		log.Critical(err)
-		return
-	}
-	defer stream.CloseSend()
-
-	service_chan := make(chan *pb.Game_Packet, PREALLOC_BUFSIZE)
-	go game_service(stream, service_chan)
-
 	// create a write buffer
 	out := new_buffer(conn, sess_die)
 	go out.start()
 
 	// start one agent for handling packet
 	wg.Add(1)
-	go agent(&sess, in, out, stream, service_chan, sess_die)
+	go agent(&sess, in, out, sess_die)
 
 	// network loop
 	for {
@@ -144,22 +116,16 @@ func handleClient(conn *net.TCPConn) {
 		size := binary.BigEndian.Uint16(header)
 
 		// alloc a byte slice for reading
-		if index+int(size) > PREALLOC_BUFSIZE {
-			index = 0
-			prealloc_buf = make([]byte, PREALLOC_BUFSIZE)
-		}
-		data := prealloc_buf[index : index+int(size)]
-		index += int(size)
-
+		payload := make([]byte, size)
 		// read msg
-		n, err = io.ReadFull(conn, data)
+		n, err = io.ReadFull(conn, payload)
 		if err != nil {
-			log.Warningf("read msg failed, ip:%v reason:%v size:%v", sess.IP, err, n)
+			log.Warningf("read payload failed, ip:%v reason:%v size:%v", sess.IP, err, n)
 			return
 		}
 
 		select {
-		case in <- data: // data queued
+		case in <- payload: // payload queued
 		case <-sess_die:
 			log.Warningf("connection closed by logic, flag:%v ip:%v", sess.Flag, sess.IP)
 			return

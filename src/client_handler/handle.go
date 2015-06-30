@@ -1,10 +1,8 @@
 package client_handler
 
 import (
-	"logic"
+	log "github.com/GameGophers/nsq-logger"
 	"math/big"
-
-	"golang.org/x/net/context"
 )
 
 import (
@@ -12,10 +10,6 @@ import (
 	"misc/crypto/pike"
 	"misc/packet"
 	. "types"
-
-	log "github.com/GameGophers/libs/nsq-logger"
-	"github.com/GameGophers/libs/services"
-	proto "github.com/GameGophers/libs/services/proto"
 )
 
 // 心跳包
@@ -44,40 +38,7 @@ func P_get_pike_seed_req(sess *Session, reader *packet.Packet) []byte {
 
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
-	tbl, _ := PKT_user_login_info(reader)
-	cli, err := services.GetService(services.SERVICE_AUTH)
-	if err != nil {
-		log.Critical(err)
-		return packet.Pack(Code["command_result_info"], command_result_info{F_code: 1, F_msg: "login service err"}, nil)
-	}
-	service, _ := cli.(proto.AuthServiceClient)
-	user_login := &proto.User_LoginInfo{
-		Uuid:      tbl.F_open_udid,
-		Host:      "agent1",
-		LoginType: tbl.F_login_way,
-		Username:  tbl.F_open_udid,
-		Passwd:    tbl.F_client_certificate,
-	}
-	r, err := service.Login(context.Background(), user_login)
-	if err != nil {
-		log.Critical(err)
-		return packet.Pack(Code["command_result_info"], command_result_info{F_code: 0, F_msg: "login faild"}, nil)
-	}
-	sess.UserId = r.Uid
-	auth := &Auth{}
-	if r.NewUser == true {
-		if err := logic.AuthInit(r.Uid, sess); err != nil {
-			log.Critical("init user error %v", err)
-			return nil
-		}
-	} else {
-		if err := logic.AuthLoad(r.Uid, sess); err != nil {
-			log.Critical("init user error %v", err)
-			return nil
-		}
-	}
-
-	return packet.Pack(Code["user_snapshot"], user_snapshot{F_uid: user.Id, F_name: user.Name, F_level: int32(user.Level)}, nil)
+	return nil
 }
 
 func checkErr(err error) {
