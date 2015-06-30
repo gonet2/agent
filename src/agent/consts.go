@@ -24,6 +24,5 @@ const (
 )
 
 const (
-	RPM_LIMIT        = 300 // Request Per Minute
-	FETCHER_INTERVAL = 100 * time.Millisecond
+	RPM_LIMIT = 300 // Request Per Minute
 )
