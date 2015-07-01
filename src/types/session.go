@@ -17,12 +17,13 @@ const (
 )
 
 type Session struct {
-	IP      net.IP
-	MQ      chan []byte // 返回给客户端的异步消息
-	Encoder *pike.Pike  // 加密器
-	Decoder *pike.Pike  // 解密器
-	UserId  int32       // 玩家ID
-	GSID    int32       // 游戏服ID
+	IP       net.IP
+	MQ       chan []byte // 返回给客户端的异步消息
+	Encoder  *pike.Pike  // 加密器
+	Decoder  *pike.Pike  // 解密器
+	UserId   int32       // 玩家ID
+	GSID     int32       // 游戏服ID
+	UniqueId uint64      //唯一ID
 
 	// 会话标记
 	Flag int32
