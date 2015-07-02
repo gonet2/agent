@@ -4,10 +4,6 @@ import (
 	"sync"
 )
 
-import (
-	. "types"
-)
-
 type Registry struct {
 	records map[int32]chan []byte
 	sync.RWMutex

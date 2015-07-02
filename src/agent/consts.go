@@ -1,9 +1,5 @@
 package main
 
-import (
-	"time"
-)
-
 const (
 	// 网络拥塞控制和削峰
 	TCP_READ_DEADLINE = 120   // 秒(没有网络包进入的最大间隔)
