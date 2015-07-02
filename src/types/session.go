@@ -22,7 +22,7 @@ type Session struct {
 	Encoder  *pike.Pike  // 加密器
 	Decoder  *pike.Pike  // 解密器
 	UserId   int32       // 玩家ID
-	GSID     int32       // 游戏服ID
+	GSID     string      // 游戏服ID;e.g.: game1,game2
 	UniqueId uint64      //唯一ID
 
 	// 会话标记
