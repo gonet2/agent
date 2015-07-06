@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/binary"
-	log "github.com/GameGophers/libs/nsq-logger"
 	"net"
 	"time"
+
+	log "github.com/GameGophers/libs/nsq-logger"
 )
 
 import (
@@ -52,7 +53,7 @@ func (buf *Buffer) send(sess *Session, data []byte) {
 
 	// encryption
 	if sess.Flag&SESS_ENCRYPT != 0 { // encryption is enabled
-		sess.Encoder.Codec(data)
+		sess.Encoder.XORKeyStream(data, data)
 	} else if sess.Flag&SESS_KEYEXCG != 0 { // key is exchanged, encryption is not yet enabled
 		sess.Flag &^= SESS_KEYEXCG
 		sess.Flag |= SESS_ENCRYPT
