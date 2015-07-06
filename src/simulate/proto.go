@@ -51,12 +51,12 @@ func (p user_login_info) Pack(w *packet.Packet) {
 
 }
 
-type pike_seed_info struct {
+type seed_info struct {
 	F_client_send_seed    int32
 	F_client_receive_seed int32
 }
 
-func (p pike_seed_info) Pack(w *packet.Packet) {
+func (p seed_info) Pack(w *packet.Packet) {
 	w.WriteS32(p.F_client_send_seed)
 	w.WriteS32(p.F_client_receive_seed)
 
@@ -130,7 +130,7 @@ func PKT_user_login_info(reader *packet.Packet) (tbl user_login_info, err error)
 	return
 }
 
-func PKT_pike_seed_info(reader *packet.Packet) (tbl pike_seed_info, err error) {
+func PKT_seed_info(reader *packet.Packet) (tbl seed_info, err error) {
 	tbl.F_client_send_seed, err = reader.ReadS32()
 	checkErr(err)
 

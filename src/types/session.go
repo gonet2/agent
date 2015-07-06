@@ -1,12 +1,9 @@
 package types
 
 import (
+	"crypto/rc4"
 	"net"
 	"time"
-)
-
-import (
-	"misc/crypto/pike"
 )
 
 const (
@@ -19,8 +16,8 @@ const (
 type Session struct {
 	IP       net.IP
 	MQ       chan []byte // 返回给客户端的异步消息
-	Encoder  *pike.Pike  // 加密器
-	Decoder  *pike.Pike  // 解密器
+	Encoder  *rc4.Cipher // 加密器
+	Decoder  *rc4.Cipher // 解密器
 	UserId   int32       // 玩家ID
 	GSID     string      // 游戏服ID;e.g.: game1,game2
 	UniqueId uint64      //唯一ID

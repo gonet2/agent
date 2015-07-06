@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	log "github.com/GameGophers/libs/nsq-logger"
-	"github.com/peterbourgon/g2s"
 	"os"
 	"time"
+
+	log "github.com/GameGophers/libs/nsq-logger"
+	"github.com/peterbourgon/g2s"
 )
 
 import (
@@ -45,7 +46,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	defer utils.PrintPanicStack(sess, p)
 	// 解密
 	if sess.Flag&SESS_ENCRYPT != 0 {
-		sess.Decoder.Codec(p)
+		sess.Decoder.XORKeyStream(p, p)
 	}
 
 	// 封装为reader
