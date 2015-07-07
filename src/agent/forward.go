@@ -35,13 +35,14 @@ type forwarder struct {
 }
 
 func init() {
-	_default_forward = forwarder{}
-	//TODO connect all game server and forward packet
+	// connect all game server and forward packet
 	clients, err := services.GetAllService(services.SERVICE_GAME)
 	if err != nil {
 		log.Critical(err)
 		os.Exit(-1)
 	}
+
+	// create stream
 	for k, cli := range clients {
 		service, _ := cli.(GameServiceClient)
 		stream, err := service.Packet(context.Background())
@@ -50,10 +51,7 @@ func init() {
 			os.Exit(-1)
 		}
 		_default_forward.gs[k] = stream
-
-	}
-	for k, c := range _default_forward.gs {
-		go _default_forward.recv(k, c)
+		go _default_forward.recv(k, stream)
 	}
 }
 
