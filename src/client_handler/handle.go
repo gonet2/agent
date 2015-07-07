@@ -2,6 +2,7 @@ package client_handler
 
 import (
 	"crypto/rc4"
+	"fmt"
 	"math/big"
 
 	log "github.com/GameGophers/libs/nsq-logger"
@@ -31,8 +32,18 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 
 	ret := seed_info{int32(E1.Int64()), int32(E2.Int64())}
 	// 服务器加密种子是客户端解密种子
-	sess.Encoder, _ = rc4.NewCipher(KEY2.Bytes())
-	sess.Decoder, _ = rc4.NewCipher(KEY1.Bytes())
+	encoder, err := rc4.NewCipher([]byte(fmt.Sprintf("%v%v", SALT, KEY2)))
+	if err != nil {
+		log.Critical(err)
+		return nil
+	}
+	decoder, err := rc4.NewCipher([]byte(fmt.Sprintf("%v%v", SALT, KEY1)))
+	if err != nil {
+		log.Critical(err)
+		return nil
+	}
+	sess.Encoder = encoder
+	sess.Decoder = decoder
 	sess.Flag |= SESS_KEYEXCG
 	return packet.Pack(Code["get_seed_ack"], ret, nil)
 }
