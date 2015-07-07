@@ -31,7 +31,7 @@ var (
 
 type forwarder struct {
 	gs map[string]GameService_PacketClient
-	sync.Mutex
+	sync.RWMutex
 }
 
 func init() {
@@ -56,10 +56,9 @@ func init() {
 }
 
 func (f *forwarder) get(id string) GameService_PacketClient {
-	f.Lock()
-	defer f.Unlock()
+	f.RLock()
+	defer f.RUnlock()
 	return f.gs[string(services.SERVICE_GAME)+"/"+id]
-
 }
 
 func (f *forwarder) recv(key string, cli GameService_PacketClient) {
