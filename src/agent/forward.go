@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"io"
 	"os"
 	"registry"
 	"sync"
@@ -68,13 +67,9 @@ func (f *forwarder) get(id string) GameService_PacketClient {
 func (f *forwarder) recv(key string, cli GameService_PacketClient) {
 	for {
 		in, err := cli.Recv()
-		if err == io.EOF {
-			log.Infof("stream recv EOF err : %v", err)
-			return
-		}
 		if err != nil {
-			log.Critical("Failed to receive a note : %v", err)
-			continue
+			log.Critical(err)
+			return
 		}
 		registry.Deliver(in.Uid, in.Content)
 	}
@@ -97,7 +92,7 @@ func forward(sess *Session, p []byte) error {
 
 		// send the packet
 		if err := c.Send(pkt); err != nil {
-			log.Criticalf("Failed to send pkt %v", err)
+			log.Critical(err)
 			return err
 		}
 		return nil
