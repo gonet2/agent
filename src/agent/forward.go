@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	ERROR_NOT_AUTHORIZED = errors.New("User not authorized")
+	ERROR_NOT_AUTHORIZED         = errors.New("User not authorized")
+	ERROR_CANNOT_FIND_GAMESERVER = errors.New("Cannot find Game Server")
 )
 
 /*
@@ -79,17 +80,27 @@ func (f *forwarder) recv(key string, cli GameService_PacketClient) {
 	}
 }
 
-// message forward
-func forward(sess *Session, p []byte) ([]byte, error) {
-	if sess.Flag&SESS_AUTHORIZED != 0 {
-		// TODO: forward packet to a game server
-		pkt := &Game_Packet{
-			Uid:     sess.UserId,
-			Content: p,
-		}
-		if err := _default_forward.get(sess.GSID).Send(pkt); err != nil {
-			log.Criticalf("Failed to send pkt %v", err)
-		}
+// forwarding messages to game server
+func forward(sess *Session, p []byte) error {
+	pkt := &Game_Packet{
+		Uid:     sess.UserId,
+		Content: p,
 	}
-	return nil, ERROR_NOT_AUTHORIZED
+
+	if sess.Flag&SESS_AUTHORIZED != 0 {
+		// get connection
+		c := _default_forward.get(sess.GSID)
+		if c == nil {
+			log.Criticalf("gsid %v cannot find it's game service:", sess.GSID)
+			return ERROR_CANNOT_FIND_GAMESERVER
+		}
+
+		// send the packet
+		if err := c.Send(pkt); err != nil {
+			log.Criticalf("Failed to send pkt %v", err)
+			return err
+		}
+		return nil
+	}
+	return ERROR_NOT_AUTHORIZED
 }

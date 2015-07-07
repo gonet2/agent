@@ -41,7 +41,7 @@ func init() {
 }
 
 // client protocol handle proxy
-func proxy_user_request(sess *Session, p []byte) []byte {
+func proxy_user_request(sess *Session, p []byte) {
 	start := time.Now()
 	defer utils.PrintPanicStack(sess, p)
 	// 解密
@@ -58,7 +58,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	if err != nil {
 		log.Error("read client timestamp failed:", err)
 		sess.Flag |= SESS_KICKED_OUT
-		return nil
+		return
 	}
 
 	// 读协议号
@@ -66,24 +66,24 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	if err != nil {
 		log.Error("read protocol number failed.")
 		sess.Flag |= SESS_KICKED_OUT
-		return nil
+		return
 	}
 
 	// 数据包序列号验证
 	if seq_id != sess.PacketCount {
 		log.Errorf("illegal packet sequence id:%v should be:%v proto:%v size:%v", seq_id, sess.PacketCount, b, len(p)-6)
 		sess.Flag |= SESS_KICKED_OUT
-		return nil
+		return
 	}
 
 	var ret []byte
 	if b > MAX_PROTO_NUM { // game协议
 		// 透传
-		ret, err = forward(sess, p)
+		err = forward(sess, p)
 		if err != nil {
 			log.Errorf("service id:%v execute failed", b)
 			sess.Flag |= SESS_KICKED_OUT
-			return nil
+			return
 		}
 	} else { // agent保留协议段 [0, MAX_PROTO_NUM]
 		// handle有效性检查
@@ -91,7 +91,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		if h == nil {
 			log.Errorf("service id:%v not bind", b)
 			sess.Flag |= SESS_KICKED_OUT
-			return nil
+			return
 		}
 		// 执行
 		ret = h(sess, reader)
@@ -103,5 +103,4 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		log.Trace("[REQ]", b)
 		_statter.Timing(1.0, fmt.Sprintf("%v%v", STATSD_PREFIX, b), elasped)
 	}
-	return ret
 }
