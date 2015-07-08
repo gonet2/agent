@@ -25,6 +25,8 @@ func Pack(tos int16, tbl interface{}, writer *Packet) []byte {
 	if tbl == nil {
 		return writer.Data()
 	}
+
+	//use protobuf marshal pack the data.
 	p, err := proto.Marshal(tbl.(proto.Message))
 	if err == nil {
 		log.Critical(err)
