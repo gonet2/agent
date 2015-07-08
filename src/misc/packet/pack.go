@@ -27,12 +27,17 @@ func Pack(tos int16, tbl interface{}, writer *Packet) []byte {
 	}
 
 	//use protobuf marshal pack the data.
-	p, err := proto.Marshal(tbl.(proto.Message))
-	if err == nil {
-		log.Critical(err)
+	if pb, ok := tbl.(proto.Message); ok {
+		p, err := proto.Marshal(pb)
+		if err == nil {
+			log.Critical(err)
+			return nil
+		}
+		writer.WriteRawBytes(p)
+	} else {
+		log.Critical("tbl %+v is not implement proto.Message interface", tbl)
 		return nil
 	}
-	writer.WriteRawBytes(p)
 
 	// return byte array
 	return writer.Data()
