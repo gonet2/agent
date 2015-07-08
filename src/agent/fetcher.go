@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"os"
 
 	"golang.org/x/net/context"
@@ -36,12 +35,8 @@ func fetcher_task() {
 		go func() {
 			for {
 				p, err := stream.Recv()
-				if err == io.EOF {
-					log.Infof("stream recv EOF err :%v", err)
-					return
-				}
 				if err != nil {
-					log.Critical("stream recv gs err", err)
+					log.Critical(err)
 					continue
 				}
 				registry.Deliver(p.Uid, p.Content)
