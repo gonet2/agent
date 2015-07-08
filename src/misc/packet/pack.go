@@ -1,6 +1,8 @@
 package packet
 
 import (
+	"errors"
+
 	log "github.com/GameGophers/libs/nsq-logger"
 	"github.com/golang/protobuf/proto"
 )
@@ -41,4 +43,21 @@ func Pack(tos int16, tbl interface{}, writer *Packet) []byte {
 
 	// return byte array
 	return writer.Data()
+}
+
+//unpack the data
+func Unpack(in *Packet, out interface{}) error {
+	msg, ok := out.(*proto.Message)
+	if !ok {
+		return errors.New("unpack data must be a *proto.Message")
+	}
+	bin, err := in.ReadRawBytes()
+	if err != nil {
+		return err
+	}
+	err = proto.Unmarshal(bin, *msg)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -73,6 +73,11 @@ func (p *Packet) ReadBytes() (ret []byte, err error) {
 	return
 }
 
+func (p *Packet) ReadRawBytes() (ret []byte, err error) {
+	ret = p.data[p.pos:]
+	return
+}
+
 func (p *Packet) ReadString() (ret string, err error) {
 	if p.pos+2 > len(p.data) {
 		err = errors.New("read string header failed")

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package protos;
+
+message seed_info {
+	 int32 client_send_seed=1;
+	 int32 client_receive_seed=2;
+}

@@ -12,6 +12,7 @@ import (
 	"misc/crypto/dh"
 	"misc/packet"
 	. "types"
+	"types/protos"
 )
 
 // 心跳包
@@ -21,16 +22,17 @@ func P_heart_beat_req(sess *Session, reader *packet.Packet) []byte {
 
 // 密钥交换
 func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
-	tbl, _ := PKT_seed_info(reader)
+	tbl := &protos.SeedInfo{}
+	packet.Unpack(reader, tbl)
 	// KEY1
 	X1, E1 := dh.DHExchange()
-	KEY1 := dh.DHKey(X1, big.NewInt(int64(tbl.F_client_send_seed)))
+	KEY1 := dh.DHKey(X1, big.NewInt(int64(tbl.ClientSendSeed)))
 
 	// KEY2
 	X2, E2 := dh.DHExchange()
-	KEY2 := dh.DHKey(X2, big.NewInt(int64(tbl.F_client_receive_seed)))
+	KEY2 := dh.DHKey(X2, big.NewInt(int64(tbl.ClientReceiveSeed)))
 
-	ret := seed_info{int32(E1.Int64()), int32(E2.Int64())}
+	ret := protos.SeedInfo{int32(E1.Int64()), int32(E2.Int64())}
 	// 服务器加密种子是客户端解密种子
 	encoder, err := rc4.NewCipher([]byte(fmt.Sprintf("%v%v", SALT, KEY2)))
 	if err != nil {
