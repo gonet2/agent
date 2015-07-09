@@ -2,6 +2,7 @@ package types
 
 import (
 	"crypto/rc4"
+	. "github.com/GameGophers/libs/services/proto"
 	"net"
 	"time"
 )
@@ -14,13 +15,13 @@ const (
 )
 
 type Session struct {
-	IP       net.IP
-	MQ       chan []byte // 返回给客户端的异步消息
-	Encoder  *rc4.Cipher // 加密器
-	Decoder  *rc4.Cipher // 解密器
-	UserId   int32       // 玩家ID
-	GSID     string      // 游戏服ID;e.g.: game1,game2
-	UniqueId uint64      //唯一ID
+	IP      net.IP
+	MQ      chan []byte              // 返回给客户端的异步消息
+	Encoder *rc4.Cipher              // 加密器
+	Decoder *rc4.Cipher              // 解密器
+	UserId  int32                    // 玩家ID
+	GSID    string                   // 游戏服ID;e.g.: game1,game2
+	Stream  GameService_PacketClient // 后端游戏服数据流
 
 	// 会话标记
 	Flag int32

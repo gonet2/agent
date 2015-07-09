@@ -1,1 +1,0 @@
-记录在线用户的IPC channel
