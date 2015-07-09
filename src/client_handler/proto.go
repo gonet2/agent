@@ -76,6 +76,42 @@ func (p user_snapshot) Pack(w *packet.Packet) {
 	w.WriteS32(p.F_current_exp)
 
 }
+
+type servers_info struct {
+	F_lists []server_info
+}
+
+func (p servers_info) Pack(w *packet.Packet) {
+	w.WriteU16(uint16(len(p.F_lists)))
+	for k := range p.F_lists {
+		p.F_lists[k].Pack(w)
+	}
+
+}
+
+type server_info struct {
+	F_id     int32
+	F_alias  string
+	F_name   string
+	F_status int32
+}
+
+func (p server_info) Pack(w *packet.Packet) {
+	w.WriteS32(p.F_id)
+	w.WriteString(p.F_alias)
+	w.WriteString(p.F_name)
+	w.WriteS32(p.F_status)
+
+}
+
+type server_alias struct {
+	F_alias string
+}
+
+func (p server_alias) Pack(w *packet.Packet) {
+	w.WriteString(p.F_alias)
+
+}
 func PKT_auto_id(reader *packet.Packet) (tbl auto_id, err error) {
 	tbl.F_id, err = reader.ReadS32()
 	checkErr(err)
@@ -151,6 +187,46 @@ func PKT_user_snapshot(reader *packet.Packet) (tbl user_snapshot, err error) {
 	checkErr(err)
 
 	tbl.F_current_exp, err = reader.ReadS32()
+	checkErr(err)
+
+	return
+}
+
+func PKT_servers_info(reader *packet.Packet) (tbl servers_info, err error) {
+	{
+		narr, err := reader.ReadU16()
+		checkErr(err)
+
+		tbl.F_lists = make([]server_info, narr)
+		for i := 0; i < int(narr); i++ {
+			tbl.F_lists[i], err = PKT_server_info(reader)
+			checkErr(err)
+
+		}
+
+	}
+
+	return
+}
+
+func PKT_server_info(reader *packet.Packet) (tbl server_info, err error) {
+	tbl.F_id, err = reader.ReadS32()
+	checkErr(err)
+
+	tbl.F_alias, err = reader.ReadString()
+	checkErr(err)
+
+	tbl.F_name, err = reader.ReadString()
+	checkErr(err)
+
+	tbl.F_status, err = reader.ReadS32()
+	checkErr(err)
+
+	return
+}
+
+func PKT_server_alias(reader *packet.Packet) (tbl server_alias, err error) {
+	tbl.F_alias, err = reader.ReadString()
 	checkErr(err)
 
 	return

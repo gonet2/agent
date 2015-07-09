@@ -12,6 +12,9 @@ var Code = map[string]int16{
 	"heart_beat_ack":         5,  // 心跳包回复
 	"get_seed_req":           30, // socket通信加密使用
 	"get_seed_ack":           31, // socket通信加密使用
+	"game_servers_req":       32, // 拉取服务器列表
+	"game_servers_ack":       33, // 拉取服务器列表回复
+	"choose_server_req":      34, // 选择服务器
 }
 
 var RCode = map[int16]string{
@@ -23,6 +26,9 @@ var RCode = map[int16]string{
 	5:  "heart_beat_ack",         // 心跳包回复
 	30: "get_seed_req",           // socket通信加密使用
 	31: "get_seed_ack",           // socket通信加密使用
+	32: "game_servers_req",       // 拉取服务器列表
+	33: "game_servers_ack",       // 拉取服务器列表回复
+	34: "choose_server_req",      // 选择服务器
 }
 
 var Handlers map[int16]func(*Session, *packet.Packet) []byte
@@ -32,5 +38,7 @@ func init() {
 		0:  P_heart_beat_req,
 		1:  P_user_login_req,
 		30: P_get_seed_req,
+		32: P_game_servers_req,
+		34: P_choose_server_req,
 	}
 }
