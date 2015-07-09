@@ -16,10 +16,10 @@ var (
 	ERROR_NOT_AUTHORIZED = errors.New("User not authorized")
 )
 
-// forwarding messages to game server
+// forward messages to game server
 func forward(sess *Session, p []byte) error {
 	pkt := &Game_Packet{
-		Uid:     sess.UserId,
+		Ctrl:    Game_Message,
 		Content: p,
 	}
 
@@ -34,6 +34,7 @@ func forward(sess *Session, p []byte) error {
 	return ERROR_NOT_AUTHORIZED
 }
 
+// fetch messages for current session
 func fetcher_task(sess *Session) {
 	for {
 		in, err := sess.Stream.Recv()
@@ -46,6 +47,10 @@ func fetcher_task(sess *Session) {
 			log.Critical(err)
 			return
 		}
-		sess.MQ <- in.Content
+
+		switch in.Ctrl {
+		case Game_Message:
+			sess.MQ <- in.Content
+		}
 	}
 }
