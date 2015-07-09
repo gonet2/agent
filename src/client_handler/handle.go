@@ -7,6 +7,7 @@ import (
 	"numbers"
 
 	log "github.com/GameGophers/libs/nsq-logger"
+	"github.com/GameGophers/libs/services"
 )
 
 import (
@@ -67,7 +68,11 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 }
 
 func P_game_servers_req(sess *Session, reader *packet.Packet) []byte {
-
+	clients, err := services.GetAllService(services.SERVICE_GAME)
+	if err != nil {
+		log.Critical(err)
+		return nil
+	}
 	table := "config@server_config"
 	cnt := numbers.Count(table)
 	servers := servers_info{
@@ -75,14 +80,18 @@ func P_game_servers_req(sess *Session, reader *packet.Packet) []byte {
 	}
 	for i := int32(1); i <= cnt; i++ {
 		alias := numbers.GetString(table, i, "STR_Alias")
-		name := numbers.GetString(table, i, "STR_Name")
-		servers.F_lists = append(servers.F_lists, server_info{
-			F_id:     i,
-			F_alias:  alias,
-			F_name:   name,
-			F_status: GAME_SRV_OK,
-		})
+		id := string(services.SERVICE_GAME) + "/" + alias
+		if _, ok := clients[id]; ok {
+			name := numbers.GetString(table, i, "STR_Name")
+			servers.F_lists = append(servers.F_lists, server_info{
+				F_id:     i,
+				F_alias:  alias,
+				F_name:   name,
+				F_status: GAME_SRV_OK,
+			})
+		}
 	}
+
 	return packet.Pack(Code["game_servers_ack"], servers, nil)
 }
 func P_choose_server_req(sess *Session, reader *packet.Packet) []byte {
