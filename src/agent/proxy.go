@@ -77,24 +77,21 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	}
 
 	var ret []byte
-	if b > MAX_PROTO_NUM { // game协议
-		// 透传
-		err = forward(sess, p)
-		if err != nil {
+	if b > MAX_PROTO_NUM {
+		if err := forward(sess, p); err != nil {
 			log.Errorf("service id:%v execute failed, error:%v", b, err)
 			sess.Flag |= SESS_KICKED_OUT
 			return nil
 		}
-	} else { // agent保留协议段 [0, MAX_PROTO_NUM]
-		// handle有效性检查
-		h := client_handler.Handlers[b]
-		if h == nil {
+	} else {
+		if h := client_handler.Handlers[b]; h != nil {
+			ret = h(sess, reader)
+		} else {
+			//	if h == nil {
 			log.Errorf("service id:%v not bind", b)
 			sess.Flag |= SESS_KICKED_OUT
 			return nil
 		}
-		// 执行
-		ret = h(sess, reader)
 	}
 
 	// 统计处理时间
