@@ -51,6 +51,8 @@ func fetcher_task(sess *Session) {
 		switch in.Type {
 		case Game_Message:
 			sess.MQ <- in.Message
+		case Game_Kick:
+			sess.Flag |= SESS_KICKED_OUT
 		}
 	}
 }

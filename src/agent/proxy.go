@@ -81,7 +81,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		// 透传
 		err = forward(sess, p)
 		if err != nil {
-			log.Errorf("service id:%v execute failed", b)
+			log.Errorf("service id:%v execute failed, error:%v", b, err)
 			sess.Flag |= SESS_KICKED_OUT
 			return nil
 		}
