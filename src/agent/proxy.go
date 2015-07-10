@@ -76,6 +76,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		return nil
 	}
 
+	// 根据协议号断做服务划分
 	var ret []byte
 	if b > MAX_PROTO_NUM {
 		if err := forward(sess, p); err != nil {

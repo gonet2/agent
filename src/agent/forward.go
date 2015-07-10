@@ -18,14 +18,14 @@ var (
 
 // forward messages to game server
 func forward(sess *Session, p []byte) error {
-	pkt := &Game_Frame{
+	frame := &Game_Frame{
 		Type:    Game_Message,
 		Message: p,
 	}
 
 	if sess.Flag&SESS_AUTHORIZED != 0 {
 		// send the packet
-		if err := sess.Stream.Send(pkt); err != nil {
+		if err := sess.Stream.Send(frame); err != nil {
 			log.Critical(err)
 			return err
 		}
