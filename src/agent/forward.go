@@ -26,7 +26,7 @@ func forward(sess *Session, p []byte) error {
 	if sess.Flag&SESS_AUTHORIZED != 0 {
 		// send the packet
 		if err := sess.Stream.Send(frame); err != nil {
-			log.Critical(err)
+			log.Error(err)
 			return err
 		}
 		return nil
@@ -44,7 +44,7 @@ func fetcher_task(sess *Session) {
 			return
 		}
 		if err != nil {
-			log.Critical(err)
+			log.Error(err)
 			return
 		}
 
