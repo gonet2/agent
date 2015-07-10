@@ -21,7 +21,7 @@ type Session struct {
 	Decoder *rc4.Cipher              // 解密器
 	UserId  int32                    // 玩家ID
 	GSID    string                   // 游戏服ID;e.g.: game1,game2
-	Stream  GameService_PacketClient // 后端游戏服数据流
+	Stream  GameService_StreamClient // 后端游戏服数据流
 
 	// 会话标记
 	Flag int32
