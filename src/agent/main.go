@@ -32,9 +32,7 @@ func main() {
 
 	log.SetPrefix(SERVICE)
 
-	// server startup procedure
-	startup()
-
+	// resolve
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", _port)
 	checkError(err)
 
