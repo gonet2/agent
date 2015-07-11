@@ -11,7 +11,7 @@
 具体的划分根据业务需求进行。
 
 ## 使用
-参考测试用例以及chat.proto文件
+参考测试用例以及tools目录的simulate
 
 ## 安装
 参考Dockerfile
