@@ -1,2 +1,2 @@
 # agent
-game server skeleton based on microservice architecture
+front access point for all game services, devices should connect agent only.
