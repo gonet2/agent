@@ -61,6 +61,13 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		return nil
 	}
 
+	// 数据包序列号验证
+	if seq_id != sess.PacketCount {
+		log.Errorf("illegal packet sequence id:%v should be:%v size:%v", seq_id, sess.PacketCount, len(p)-6)
+		sess.Flag |= SESS_KICKED_OUT
+		return nil
+	}
+
 	// 读协议号
 	b, err := reader.ReadS16()
 	if err != nil {
@@ -69,17 +76,10 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		return nil
 	}
 
-	// 数据包序列号验证
-	if seq_id != sess.PacketCount {
-		log.Errorf("illegal packet sequence id:%v should be:%v proto:%v size:%v", seq_id, sess.PacketCount, b, len(p)-6)
-		sess.Flag |= SESS_KICKED_OUT
-		return nil
-	}
-
 	// 根据协议号断做服务划分
 	var ret []byte
 	if b > MAX_PROTO_NUM {
-		if err := forward(sess, p); err != nil {
+		if err := forward(sess, p[4:]); err != nil {
 			log.Errorf("service id:%v execute failed, error:%v", b, err)
 			sess.Flag |= SESS_KICKED_OUT
 			return nil
