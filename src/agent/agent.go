@@ -24,6 +24,9 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 	// cleanup work
 	defer func() {
 		close(sess_die)
+		if sess.Stream != nil {
+			sess.Stream.CloseSend()
+		}
 	}()
 
 	// >> the main message loop <<
