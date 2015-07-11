@@ -1,2 +1,9 @@
-# agent
-front access point for all game services, devices should connect agent only.
+# agent(网关）
+设备只连接到网关，网关无状态，长连接。 
+
+数据包会根据协议编号（0-65535) 转发到对应的服务， 例如:      
+
+      1-1000: 登陆相关协议，网关协同auth服务处理。
+      1001-10000: 游戏逻辑段
+      
+具体的划分根据业务需求进行。
