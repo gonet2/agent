@@ -9,4 +9,4 @@ google.golang.org/grpc HEAD
 github.com/fzzy/radix/redis HEAD
 github.com/davecgh/go-spew/spew HEAD
 github.com/peterbourgon/g2s HEAD
-github.com/GameGophers/libs HEAD
+github.com/gonet2/libs HEAD

@@ -2,7 +2,7 @@ package types
 
 import (
 	"crypto/rc4"
-	. "github.com/GameGophers/libs/services/proto"
+	. "github.com/gonet2/libs/services/proto"
 	"net"
 	"time"
 )

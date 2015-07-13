@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	log "github.com/GameGophers/libs/nsq-logger"
-	. "github.com/GameGophers/libs/services/proto"
+	log "github.com/gonet2/libs/nsq-logger"
+	. "github.com/gonet2/libs/services/proto"
 )
 
 import (

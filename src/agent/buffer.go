@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	log "github.com/GameGophers/libs/nsq-logger"
+	log "github.com/gonet2/libs/nsq-logger"
 )
 
 import (

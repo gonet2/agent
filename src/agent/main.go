@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/binary"
-	log "github.com/GameGophers/libs/nsq-logger"
+	log "github.com/gonet2/libs/nsq-logger"
 	"io"
 	"net"
 	"net/http"
