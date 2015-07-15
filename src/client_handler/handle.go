@@ -10,7 +10,7 @@ import (
 )
 
 import (
-	. "github.com/gonet2/libs/services/proto"
+	sp "github.com/gonet2/libs/services/proto"
 	"misc/crypto/dh"
 	"misc/packet"
 	. "types"
@@ -67,9 +67,9 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 			}
 
 			switch in.Type {
-			case Game_Message:
+			case sp.Game_Message:
 				sess.MQ <- in.Message
-			case Game_Kick:
+			case sp.Game_Kick:
 				sess.Flag |= SESS_KICKED_OUT
 			}
 		}
