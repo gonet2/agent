@@ -54,6 +54,9 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	// fetch messages for current session
 	fetcher_task := func(sess *Session) {
+		defer func() {
+			log.Tracef("fetcher task closed userid:%v", sess.UserId)
+		}()
 		for {
 			in, err := sess.Stream.Recv()
 			// close signal
