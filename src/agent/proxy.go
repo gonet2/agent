@@ -88,7 +88,6 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		if h := client_handler.Handlers[b]; h != nil {
 			ret = h(sess, reader)
 		} else {
-			//	if h == nil {
 			log.Errorf("service id:%v not bind", b)
 			sess.Flag |= SESS_KICKED_OUT
 			return nil

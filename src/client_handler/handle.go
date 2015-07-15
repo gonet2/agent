@@ -3,12 +3,14 @@ package client_handler
 import (
 	"crypto/rc4"
 	"fmt"
+	"io"
 	"math/big"
 
 	log "github.com/gonet2/libs/nsq-logger"
 )
 
 import (
+	sp "github.com/gonet2/libs/services/proto"
 	"misc/crypto/dh"
 	"misc/packet"
 	. "types"
@@ -50,6 +52,29 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
+	// fetch messages for current session
+	fetcher_task := func(sess *Session) {
+		for {
+			in, err := sess.Stream.Recv()
+			// close signal
+			if err == io.EOF {
+				log.Trace(err)
+				return
+			}
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			switch in.Type {
+			case sp.Game_Message:
+				sess.MQ <- in.Message
+			case sp.Game_Kick:
+				sess.Flag |= SESS_KICKED_OUT
+			}
+		}
+	}
+	go fetcher_task(sess)
 	return nil
 }
 
