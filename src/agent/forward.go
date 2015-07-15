@@ -2,8 +2,6 @@ package main
 
 import (
 	"errors"
-	"io"
-
 	log "github.com/gonet2/libs/nsq-logger"
 	. "github.com/gonet2/libs/services/proto"
 )
@@ -32,27 +30,4 @@ func forward(sess *Session, p []byte) error {
 		return nil
 	}
 	return ERROR_NOT_AUTHORIZED
-}
-
-// fetch messages for current session
-func fetcher_task(sess *Session) {
-	for {
-		in, err := sess.Stream.Recv()
-		// close signal
-		if err == io.EOF {
-			log.Trace(err)
-			return
-		}
-		if err != nil {
-			log.Error(err)
-			return
-		}
-
-		switch in.Type {
-		case Game_Message:
-			sess.MQ <- in.Message
-		case Game_Kick:
-			sess.Flag |= SESS_KICKED_OUT
-		}
-	}
 }
