@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	log "github.com/gonet2/libs/nsq-logger"
+	_ "github.com/gonet2/libs/services"
 	. "github.com/gonet2/libs/services/proto"
 )
 
