@@ -52,7 +52,9 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
-	// fetch messages for current session
+	// TODO : 登陆鉴权过程
+
+	// 读取GAME返回消息
 	fetcher_task := func(sess *Session) {
 		for {
 			in, err := sess.Stream.Recv()
