@@ -13,8 +13,5 @@
 ## 使用
 参考测试用例以及tools目录的simulate
 
-## 安装
-参考Dockerfile
-
 # 环境变量
 > NSQD_HOST: eg : http://172.17.42.1:4151
