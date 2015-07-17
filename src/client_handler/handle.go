@@ -100,7 +100,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 		}
 	}
 	go fetcher_task(sess)
-	return nil
+	return packet.Pack(Code["user_login_ack"], user_snapshot{F_uid: sess.UserId}, nil)
 }
 
 func checkErr(err error) {
