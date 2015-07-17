@@ -22,7 +22,8 @@ import (
 
 // 心跳包
 func P_heart_beat_req(sess *Session, reader *packet.Packet) []byte {
-	return packet.Pack(Code["heart_beat_ack"], nil, nil)
+	tbl, _ := PKT_auto_id(reader)
+	return packet.Pack(Code["heart_beat_ack"], tbl, nil)
 }
 
 // 密钥交换
