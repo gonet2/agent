@@ -1,18 +1,17 @@
 package client_handler
 
 import (
-	"testing"
 	"crypto/rc4"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
 	"math/big"
-	"math/rand"
 	"misc/crypto/dh"
 	"misc/packet"
 	"net"
 	"os"
+	"testing"
 	"time"
 )
 
@@ -70,31 +69,6 @@ func Test_agent(t *testing.T) {
 
 	KEY_EXCHANGE = true
 
-	//user_login_req
-	p3 := user_login_info{
-		F_login_way:          0,
-		F_open_udid:          "udid",
-		F_client_certificate: "qwertyuiopasdfgh",
-		F_client_version:     1,
-		F_user_lang:          "en",
-		F_app_id:             "com.yrhd.lovegame",
-		F_os_version:         "android4.4",
-		F_device_name:        "simulate",
-		F_device_id:          "device_id",
-		F_device_id_type:     1,
-		F_login_ip:           "127.0.0.1",
-	}
-	send_proto(conn, Code["user_login_req"], p3)
-
-	//heart_beat_req
-	send_proto(conn, Code["heart_beat_req"], nil)
-
-	//proto_ping_req
-	p1 := auto_id{
-		F_id: rand.Int31(),
-	}
-	send_proto(conn, Code["proto_ping_req"], p1)
-
 }
 
 func send_proto(conn net.Conn, p int16, info interface{}) (reader *packet.Packet) {
@@ -139,4 +113,3 @@ func send_proto(conn net.Conn, p int16, info interface{}) (reader *packet.Packet
 
 	return
 }
-
