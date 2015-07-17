@@ -97,7 +97,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	// 统计处理时间
 	elasped := time.Now().Sub(start)
 	if b != 0 { // 排除心跳包日志
-		log.Trace("[REQ]", b)
+		log.Trace("[REQ]", client_handler.RCode[b])
 		_statter.Timing(1.0, fmt.Sprintf("%v%v", STATSD_PREFIX, b), elasped)
 	}
 	return ret

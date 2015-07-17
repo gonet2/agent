@@ -22,9 +22,9 @@ func forward(sess *Session, p []byte) error {
 		Message: p,
 	}
 
-	if sess.Flag&SESS_AUTHORIZED == 0 {
-		return ERROR_NOT_AUTHORIZED
-	}
+	//if sess.Flag&SESS_AUTHORIZED == 0 {
+	//	return ERROR_NOT_AUTHORIZED
+	//}
 	// send the packet
 	if err := sess.Stream.Send(frame); err != nil {
 		log.Error(err)
