@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+
 	log "github.com/gonet2/libs/nsq-logger"
-	_ "github.com/gonet2/libs/services"
 	. "github.com/gonet2/libs/services/proto"
 )
 
@@ -22,13 +22,13 @@ func forward(sess *Session, p []byte) error {
 		Message: p,
 	}
 
-	if sess.Flag&SESS_AUTHORIZED != 0 {
-		// send the packet
-		if err := sess.Stream.Send(frame); err != nil {
-			log.Error(err)
-			return err
-		}
-		return nil
+	if sess.Flag&SESS_AUTHORIZED == 0 {
+		return ERROR_NOT_AUTHORIZED
 	}
-	return ERROR_NOT_AUTHORIZED
+	// send the packet
+	if err := sess.Stream.Send(frame); err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
 }
