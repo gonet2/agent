@@ -6,14 +6,18 @@ import (
 	"io"
 	"math/big"
 
+	"golang.org/x/net/context"
+
 	log "github.com/gonet2/libs/nsq-logger"
+	"github.com/gonet2/libs/services"
 )
 
 import (
-	sp "github.com/gonet2/libs/services/proto"
 	"misc/crypto/dh"
 	"misc/packet"
 	. "types"
+
+	sp "github.com/gonet2/libs/services/proto"
 )
 
 // 心跳包
@@ -53,6 +57,25 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	// TODO : 登陆鉴权过程
+
+	//debug
+	sess.GSID = DEFAULT_GSID
+	sess.UserId = 1
+
+	//connect to game server
+	cli, err := services.GetServiceWithId(services.SERVICE_GAME, sess.GSID)
+	if err != nil {
+		log.Critical(err)
+		return nil
+	}
+	service, _ := cli.(sp.GameServiceClient)
+	stream, err := service.Stream(context.Background())
+	if err != nil {
+		log.Critical(err)
+		return nil
+	}
+	sess.Stream = stream
+	sess.Stream.Send(&sp.Game_Frame{Type: sp.Game_Register, UserId: sess.UserId})
 
 	// 读取GAME返回消息
 	fetcher_task := func(sess *Session) {
