@@ -6,10 +6,10 @@ import (
 	"io"
 	"math/big"
 
-	// "golang.org/x/net/context"
+	"golang.org/x/net/context"
 
 	log "github.com/gonet2/libs/nsq-logger"
-	// "github.com/gonet2/libs/services"
+	"github.com/gonet2/libs/services"
 )
 
 import (
@@ -57,35 +57,34 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
-	// TODO : 登陆鉴权过程
+	// TODO: 登陆鉴权
+	sess.UserId = 1
 
-	/*
-		//debug
-		sess.GSID = DEFAULT_GSID
-		sess.UserId = 1
+	// TODO: 选择登陆服务器
+	sess.GSID = DEFAULT_GSID
 
-		//connect to game server
-		cli, err := services.GetServiceWithId(services.SERVICE_GAME, sess.GSID)
-		if err != nil {
-			log.Critical(err)
-			return nil
-		}
-		service, _ := cli.(sp.GameServiceClient)
-		stream, err := service.Stream(context.Background())
-		if err != nil {
-			log.Critical(err)
-			return nil
-		}
-		sess.Stream = stream
-		sess.Stream.Send(&sp.Game_Frame{Type: sp.Game_Register, UserId: sess.UserId})
-	*/
+	// 选服, 开启到游戏服的流
+	cli, err := services.GetServiceWithId(services.SERVICE_GAME, sess.GSID)
+	if err != nil {
+		log.Critical(err)
+		return nil
+	}
+	service, _ := cli.(sp.GameServiceClient)
+	stream, err := service.Stream(context.Background())
+	if err != nil {
+		log.Critical(err)
+		return nil
+	}
+	sess.Stream = stream
+
+	// 在game注册
+	sess.Stream.Send(&sp.Game_Frame{Type: sp.Game_Register, UserId: sess.UserId})
 
 	// 读取GAME返回消息
 	fetcher_task := func(sess *Session) {
 		for {
 			in, err := sess.Stream.Recv()
-			// close signal
-			if err == io.EOF {
+			if err == io.EOF { // 流关闭
 				log.Trace(err)
 				return
 			}
