@@ -28,7 +28,7 @@ const (
 	DEFAULT_AGENT_HOST = "127.0.0.1:8888"
 )
 
-func Test_agent(t *testing.T) {
+func TestAgent(t *testing.T) {
 	host := DEFAULT_AGENT_HOST
 	if env := os.Getenv("AGENT_HOST"); env != "" {
 		host = env
@@ -54,7 +54,6 @@ func Test_agent(t *testing.T) {
 	}
 	rst := send_proto(conn, Code["get_seed_req"], p2)
 	r1, _ := PKT_seed_info(rst)
-	log.Printf("result: %#v", r1)
 
 	K1 := dh.DHKey(S1, big.NewInt(int64(r1.F_client_send_seed)))
 	K2 := dh.DHKey(S2, big.NewInt(int64(r1.F_client_receive_seed)))
@@ -71,12 +70,12 @@ func Test_agent(t *testing.T) {
 
 	KEY_EXCHANGE = true
 
-	//heart_beat_req
+	// heart_beat_req
 	p1 := auto_id{F_id: rand.Int31()}
 	log.Printf("send: %#v", p1)
 	rst = send_proto(conn, Code["heart_beat_req"], p1)
 	r2, _ := PKT_auto_id(rst)
-	log.Printf("result: %#v", r2)
+	log.Printf("response: %#v", r2)
 
 }
 
