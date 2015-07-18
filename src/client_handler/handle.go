@@ -63,13 +63,22 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	// TODO: 选择登陆服务器
 	sess.GSID = DEFAULT_GSID
 
-	// 选服, 开启到游戏服的流
+	// 选服
 	cli, err := services.GetServiceWithId(services.SERVICE_GAME, sess.GSID)
 	if err != nil {
 		log.Critical(err)
 		return nil
 	}
-	service, _ := cli.(sp.GameServiceClient)
+
+	// type assertion
+	service, ok := cli.(sp.GameServiceClient)
+	if !ok {
+		log.Critical("cannot do type assertion on: %v", sess.GSID)
+		return nil
+	}
+
+	// 开启到游戏服的流
+	// TODO: 处理context，设定超时
 	stream, err := service.Stream(context.Background())
 	if err != nil {
 		log.Critical(err)
@@ -78,6 +87,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	sess.Stream = stream
 
 	// 在game注册
+	// TODO: 新用户的创建由game处理
 	sess.Stream.Send(&sp.Game_Frame{Type: sp.Game_Register, UserId: sess.UserId})
 
 	// 读取GAME返回消息
