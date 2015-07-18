@@ -16,7 +16,7 @@ const (
 
 type Session struct {
 	IP      net.IP
-	MQ      chan []byte              // 返回给客户端的异步消息
+	MQ      chan Game_Frame          // 返回给客户端的异步消息
 	Encoder *rc4.Cipher              // 加密器
 	Decoder *rc4.Cipher              // 解密器
 	UserId  int32                    // 玩家ID

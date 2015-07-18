@@ -102,13 +102,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 				log.Error(err)
 				return
 			}
-
-			switch in.Type {
-			case sp.Game_Message:
-				sess.MQ <- in.Message
-			case sp.Game_Kick:
-				sess.Flag |= SESS_KICKED_OUT
-			}
+			sess.MQ <- *in
 		}
 	}
 	go fetcher_task(sess)
