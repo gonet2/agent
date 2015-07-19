@@ -1,4 +1,6 @@
 # agent(网关）
+[![Build Status](https://travis-ci.org/gonet2/agent.svg?branch=master)](https://travis-ci.org/gonet2/agent)
+
 ## 设计理念
 设备只连接到网关，网关无状态，长连接。 
 
