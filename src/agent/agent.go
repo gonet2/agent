@@ -1,7 +1,7 @@
 package main
 
 import (
-	sp "github.com/gonet2/libs/services/proto"
+	spp "github.com/gonet2/libs/services/proto"
 	"time"
 )
 
@@ -16,7 +16,7 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 	defer utils.PrintPanicStack()
 
 	// init session
-	sess.MQ = make(chan sp.Game_Frame, DEFAULT_MQ_SIZE)
+	sess.MQ = make(chan spp.Game_Frame, DEFAULT_MQ_SIZE)
 	sess.ConnectTime = time.Now()
 	sess.LastPacketTime = time.Now()
 	// minute timer
@@ -47,9 +47,9 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
 			sess.LastPacketTime = sess.PacketTime
 		case frame := <-sess.MQ:
 			switch frame.Type {
-			case sp.Game_Message:
+			case spp.Game_Message:
 				out.send(sess, frame.Message)
-			case sp.Game_Kick:
+			case spp.Game_Kick:
 				sess.Flag |= SESS_KICKED_OUT
 			}
 		case <-min_timer: // minutes timer
