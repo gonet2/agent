@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ERROR_NOT_AUTHORIZED = errors.New("User not authorized")
+	ERROR_STREAM_NOT_OPEN = errors.New("stream not opened yet")
 )
 
 // forward messages to game server
@@ -22,9 +22,9 @@ func forward(sess *Session, p []byte) error {
 		Message: p,
 	}
 
-	// validation
-	if sess.Flag&SESS_AUTHORIZED == 0 {
-		return ERROR_NOT_AUTHORIZED
+	// check stream
+	if sess.Stream == nil {
+		return ERROR_STREAM_NOT_OPEN
 	}
 
 	// forward the frame to game
