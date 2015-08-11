@@ -15,7 +15,7 @@ import (
 var (
 	wg sync.WaitGroup
 	// server close signal
-	die = make(chan bool)
+	die = make(chan struct{})
 )
 
 // handle unix signals
