@@ -11,7 +11,7 @@ import (
 )
 
 // agent of user
-func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan bool) {
+func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan struct{}) {
 	defer wg.Done()
 	defer utils.PrintPanicStack()
 

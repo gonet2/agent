@@ -92,7 +92,7 @@ func handleClient(conn *net.TCPConn) {
 	log.Infof("new connection from:%v port:%v", host, port)
 
 	// session die signal
-	sess_die := make(chan bool)
+	sess_die := make(chan struct{})
 
 	// create a write buffer
 	out := new_buffer(conn, sess_die)
