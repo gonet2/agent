@@ -19,4 +19,4 @@
 > NSQD_HOST: eg : http://172.17.42.1:4151
 
 # 依赖关系
-![Dependency](agent.png)
+[![Dependency](http://gonet2.github.io/agent.svg)](http://gonet2.github.io/agent.svg)
