@@ -42,6 +42,7 @@ func main() {
 	log.Info("listening on:", listener.Addr())
 
 	// loop accepting
+LOOP:
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
@@ -54,11 +55,11 @@ func main() {
 		select {
 		case <-die:
 			listener.Close()
-			goto FINAL
+			break LOOP
 		default:
 		}
 	}
-FINAL:
+
 	// server closed, wait forever
 	for {
 		<-time.After(time.Second)
