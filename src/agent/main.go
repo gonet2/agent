@@ -41,6 +41,9 @@ func main() {
 
 	log.Info("listening on:", listener.Addr())
 
+	// startup
+	startup()
+
 	// loop accepting
 LOOP:
 	for {
