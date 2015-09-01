@@ -2,13 +2,19 @@
 [![Build Status](https://travis-ci.org/gonet2/agent.svg?branch=master)](https://travis-ci.org/gonet2/agent)
 
 ## 设计理念
-设备只连接到网关，网关无状态，长连接。 
+设备只连接到网关，网关无状态，长连接。        
 
+## agent存在的价值           
+1. 数据包加解密(rc4)         
+2. 透传原始数据到后端(bidirectional stream)
+3. 对协议做测量(metrics)，比如统计延迟(udp -> statsd)
+4. 不断开tcp连接选服(game切换)
+
+## 协议号划分
 数据包会根据协议编号（0-65535) **透传** 到对应的服务， 例如(示范）:      
 
       1-1000: 登陆相关协议，网关协同auth服务处理。
-      1001-2000: 聊天相关逻辑
-      2001-10000: 游戏逻辑段
+      1001-10000: 游戏逻辑段
       
 具体的划分根据业务需求进行。
 
