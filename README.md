@@ -9,6 +9,7 @@
 2. 透传原始数据到后端(bidirectional stream)
 3. 对协议(API)做测量，可视化(metrics visualization)
 4. 不断开tcp连接选服(game在线切换)
+5. 统一的连接入口(方便DNS round robin)
 
 ## 协议号划分
 数据包会根据协议编号（0-65535) **透传** 到对应的服务， 例如(示范）:      
