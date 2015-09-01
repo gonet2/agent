@@ -7,7 +7,7 @@
 ## agent存在的价值           
 1. 数据包加解密(DH+RC4)         
 2. 透传原始数据到后端(bidirectional stream)
-3. 对协议(API)做测量，可视化(metrics visulization)
+3. 对协议(API)做测量，可视化(metrics visualization)
 4. 不断开tcp连接选服(game在线切换)
 
 ## 协议号划分
