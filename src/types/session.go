@@ -2,9 +2,12 @@ package types
 
 import (
 	"crypto/rc4"
-	. "github.com/gonet2/libs/services/proto"
 	"net"
 	"time"
+)
+
+import (
+	pb "pb"
 )
 
 const (
@@ -16,12 +19,12 @@ const (
 
 type Session struct {
 	IP      net.IP
-	MQ      chan Game_Frame          // 返回给客户端的异步消息
-	Encoder *rc4.Cipher              // 加密器
-	Decoder *rc4.Cipher              // 解密器
-	UserId  int32                    // 玩家ID
-	GSID    string                   // 游戏服ID;e.g.: game1,game2
-	Stream  GameService_StreamClient // 后端游戏服数据流
+	MQ      chan pb.Game_Frame          // 返回给客户端的异步消息
+	Encoder *rc4.Cipher                 // 加密器
+	Decoder *rc4.Cipher                 // 解密器
+	UserId  int32                       // 玩家ID
+	GSID    string                      // 游戏服ID;e.g.: game1,game2
+	Stream  pb.GameService_StreamClient // 后端游戏服数据流
 
 	// 会话标记
 	Flag int32

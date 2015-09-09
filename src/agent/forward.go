@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	log "github.com/gonet2/libs/nsq-logger"
-	. "github.com/gonet2/libs/services/proto"
 )
 
 import (
+	pb "pb"
 	. "types"
 )
 
@@ -17,8 +17,8 @@ var (
 
 // forward messages to game server
 func forward(sess *Session, p []byte) error {
-	frame := &Game_Frame{
-		Type:    Game_Message,
+	frame := &pb.Game_Frame{
+		Type:    pb.Game_Message,
 		Message: p,
 	}
 

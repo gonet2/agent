@@ -14,10 +14,10 @@ import (
 import (
 	"misc/crypto/dh"
 	"misc/packet"
+	pb "pb"
 	. "types"
 
 	sp "github.com/gonet2/libs/services"
-	spp "github.com/gonet2/libs/services/proto"
 )
 
 // 心跳包
@@ -64,22 +64,16 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	sess.GSID = DEFAULT_GSID
 
 	// 选服
-	cli, err := sp.GetServiceWithId(sp.SERVICE_GAME, sess.GSID)
-	if err != nil {
-		log.Critical(err)
+	conn := sp.GetServiceWithId(sp.DEFAULT_SERVICE_PATH+"/game", sess.GSID)
+	if conn == nil {
+		log.Critical("cannot get game service:", sess.GSID)
 		return nil
 	}
-
-	// type assertion
-	game_cli, ok := cli.(spp.GameServiceClient)
-	if !ok {
-		log.Critical("cannot do type assertion on: %v", sess.GSID)
-		return nil
-	}
+	cli := pb.NewGameServiceClient(conn)
 
 	// 开启到游戏服的流
 	// TODO: 处理context，设定超时
-	stream, err := game_cli.Stream(context.Background())
+	stream, err := cli.Stream(context.Background())
 	if err != nil {
 		log.Critical(err)
 		return nil
@@ -88,7 +82,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 
 	// 在game注册
 	// TODO: 新用户的创建由game处理
-	sess.Stream.Send(&spp.Game_Frame{Type: spp.Game_Register, UserId: sess.UserId})
+	sess.Stream.Send(&pb.Game_Frame{Type: pb.Game_Register, UserId: sess.UserId})
 
 	// 读取GAME返回消息
 	fetcher_task := func(sess *Session) {
