@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	STATSD_PREFIX       = "API.NR"
+	STATSD_PREFIX       = "API."
 	ENV_STATSD          = "STATSD_HOST"
 	DEFAULT_STATSD_HOST = "127.0.0.1:8125"
 )
