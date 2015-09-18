@@ -4,9 +4,7 @@ github.com/bradfitz/http2 HEAD
 github.com/coreos/go-etcd/etcd HEAD
 github.com/bitly/go-nsq HEAD
 github.com/golang/glog HEAD
-golang.org/x/oauth2 HEAD
 google.golang.org/grpc HEAD
-github.com/fzzy/radix/redis HEAD
 github.com/davecgh/go-spew/spew HEAD
 github.com/peterbourgon/g2s HEAD
 github.com/gonet2/libs HEAD
