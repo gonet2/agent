@@ -37,7 +37,7 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 	X2, E2 := dh.DHExchange()
 	KEY2 := dh.DHKey(X2, big.NewInt(int64(tbl.F_client_receive_seed)))
 
-	ret := seed_info{int32(E1.Int64()), int32(E2.Int64())}
+	ret := S_seed_info{int32(E1.Int64()), int32(E2.Int64())}
 	// 服务器加密种子是客户端解密种子
 	encoder, err := rc4.NewCipher([]byte(fmt.Sprintf("%v%v", SALT, KEY2)))
 	if err != nil {
@@ -100,12 +100,5 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 		}
 	}
 	go fetcher_task(sess)
-	return packet.Pack(Code["user_login_ack"], user_snapshot{F_uid: sess.UserId}, nil)
-}
-
-func checkErr(err error) {
-	if err != nil {
-		log.Error(err)
-		panic("error occured in protocol module")
-	}
+	return packet.Pack(Code["user_login_succeed_ack"], S_user_snapshot{F_uid: sess.UserId}, nil)
 }
