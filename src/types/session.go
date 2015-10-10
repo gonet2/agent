@@ -25,6 +25,7 @@ type Session struct {
 	UserId  int32                       // 玩家ID
 	GSID    string                      // 游戏服ID;e.g.: game1,game2
 	Stream  pb.GameService_StreamClient // 后端游戏服数据流
+	Die     chan struct{}               // 会话关闭信号
 
 	// 会话标记
 	Flag int32

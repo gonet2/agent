@@ -96,7 +96,10 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 				log.Error(err)
 				return
 			}
-			sess.MQ <- *in
+			select {
+			case sess.MQ <- *in:
+			case <-sess.Die:
+			}
 		}
 	}
 	go fetcher_task(sess)

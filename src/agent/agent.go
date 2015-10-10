@@ -11,7 +11,7 @@ import (
 )
 
 // agent of user
-func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan struct{}) {
+func agent(sess *Session, in chan []byte, out *Buffer) {
 	defer wg.Done()
 	defer utils.PrintPanicStack()
 
@@ -24,7 +24,7 @@ func agent(sess *Session, in chan []byte, out *Buffer, sess_die chan struct{}) {
 
 	// cleanup work
 	defer func() {
-		close(sess_die)
+		close(sess.Die)
 		if sess.Stream != nil {
 			sess.Stream.CloseSend()
 		}

@@ -96,15 +96,15 @@ func handleClient(conn *net.TCPConn) {
 	log.Infof("new connection from:%v port:%v", host, port)
 
 	// session die signal
-	sess_die := make(chan struct{})
+	sess.Die = make(chan struct{})
 
 	// create a write buffer
-	out := new_buffer(conn, sess_die)
+	out := new_buffer(conn, sess.Die)
 	go out.start()
 
 	// start one agent for handling packet
 	wg.Add(1)
-	go agent(&sess, in, out, sess_die)
+	go agent(&sess, in, out)
 
 	// network loop
 	for {
@@ -128,7 +128,7 @@ func handleClient(conn *net.TCPConn) {
 
 		select {
 		case in <- payload: // payload queued
-		case <-sess_die:
+		case <-sess.Die:
 			log.Warningf("connection closed by logic, flag:%v ip:%v", sess.Flag, sess.IP)
 			return
 		}
