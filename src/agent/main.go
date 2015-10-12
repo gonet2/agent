@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	log "github.com/gonet2/libs/nsq-logger"
+	sp "github.com/gonet2/libs/services"
 	"io"
 	"net"
 	"net/http"
@@ -40,6 +41,9 @@ func main() {
 	checkError(err)
 
 	log.Info("listening on:", listener.Addr())
+
+	// init services
+	sp.Init()
 
 	// startup
 	startup()
