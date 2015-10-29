@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/binary"
-	log "github.com/gonet2/libs/nsq-logger"
+	log "github.com/gonet2/libs/nsq-logger" // nsq based logging
 	sp "github.com/gonet2/libs/services"
 	"io"
 	"net"
@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	_port = ":8888"
+	_port = ":8888" // the incoming address for this agent, you can use docker -p to map ports
 )
 
 const (
@@ -26,14 +26,18 @@ const (
 )
 
 func main() {
+	// to catch all uncaught panic
 	defer utils.PrintPanicStack()
+
+	// open profiling
 	go func() {
 		log.Info(http.ListenAndServe("0.0.0.0:6060", nil))
 	}()
 
+	// set log prefix
 	log.SetPrefix(SERVICE)
 
-	// resolve
+	// resolve address & start listening
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", _port)
 	checkError(err)
 
@@ -48,15 +52,15 @@ func main() {
 	// startup
 	startup()
 
-	// loop accepting
 LOOP:
+	// loop accepting
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
 			log.Warning("accept failed:", err)
 			continue
 		}
-		go handleClient(conn)
+		go handleClient(conn) // start a goroutine for every incoming connection for reading
 
 		// check server close signal
 		select {
@@ -68,28 +72,34 @@ LOOP:
 	}
 
 	// server closed, wait forever
+	// other options:
+	// select{} 	-- may cause deadlock detected error, not tested yet
 	for {
 		<-time.After(time.Second)
 	}
 }
 
-// start a goroutine when a new connection is accepted
+// the goroutine is used for reading incoming PACKETS
+// each packet is defined as :
+// | 2B size |     DATA       |
+//
 func handleClient(conn *net.TCPConn) {
 	defer utils.PrintPanicStack()
-	// set per-connection socket buffer
+	// set socket read buffer
 	conn.SetReadBuffer(SO_RCVBUF)
-
-	// set initial socket buffer
+	// set socket write buffer
 	conn.SetWriteBuffer(SO_SNDBUF)
 
-	// initial network control struct
+	// for reading the 2-Byte header
 	header := make([]byte, 2)
+	// the input channel for agent()
 	in := make(chan []byte)
 	defer func() {
 		close(in) // session will close
 	}()
 
 	// create a new session object for the connection
+	// and record it's IP address
 	var sess Session
 	host, port, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {
@@ -99,21 +109,25 @@ func handleClient(conn *net.TCPConn) {
 	sess.IP = net.ParseIP(host)
 	log.Infof("new connection from:%v port:%v", host, port)
 
-	// session die signal
+	// session die signal, will be triggered by agent()
 	sess.Die = make(chan struct{})
 
 	// create a write buffer
 	out := new_buffer(conn, sess.Die)
 	go out.start()
 
-	// start one agent for handling packet
+	// start agent for PACKET processing
 	wg.Add(1)
 	go agent(&sess, in, out)
 
-	// network loop
+	// read loop
 	for {
-		// solve dead link problem
+		// solve dead link problem:
+		// physical disconnection without any communcation between client and server
+		// will cause the read to block FOREVER, so a timeout is a rescue.
 		conn.SetReadDeadline(time.Now().Add(TCP_READ_DEADLINE * time.Second))
+
+		// read 2B header
 		n, err := io.ReadFull(conn, header)
 		if err != nil {
 			log.Warningf("read header failed, ip:%v reason:%v size:%v", sess.IP, err, n)
@@ -121,15 +135,15 @@ func handleClient(conn *net.TCPConn) {
 		}
 		size := binary.BigEndian.Uint16(header)
 
-		// alloc a byte slice for reading
+		// alloc a byte slice of the size defined in the header for reading data
 		payload := make([]byte, size)
-		// read msg
 		n, err = io.ReadFull(conn, payload)
 		if err != nil {
 			log.Warningf("read payload failed, ip:%v reason:%v size:%v", sess.IP, err, n)
 			return
 		}
 
+		// deliver the data to the input queue of agent()
 		select {
 		case in <- payload: // payload queued
 		case <-sess.Die:
