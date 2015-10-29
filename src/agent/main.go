@@ -79,6 +79,7 @@ LOOP:
 	}
 }
 
+// PIPELINE #1: handleClient
 // the goroutine is used for reading incoming PACKETS
 // each packet is defined as :
 // | 2B size |     DATA       |

@@ -10,9 +10,10 @@ import (
 	"utils"
 )
 
-// agent of user
+// PIPELINE #2: agent
+// process all the packets from handleClient()
 func agent(sess *Session, in chan []byte, out *Buffer) {
-	defer wg.Done()
+	defer wg.Done() // will decrease waitgroup by one, useful for manual server shutdown
 	defer utils.PrintPanicStack()
 
 	// init session
@@ -31,6 +32,11 @@ func agent(sess *Session, in chan []byte, out *Buffer) {
 	}()
 
 	// >> the main message loop <<
+	// handles 4 types of message:
+	//  1. from client
+	//  2. from game service
+	//  3. timer
+	//  4. server die signal
 	for {
 		select {
 		case msg, ok := <-in: // packet from network
@@ -45,7 +51,7 @@ func agent(sess *Session, in chan []byte, out *Buffer) {
 				out.send(sess, result)
 			}
 			sess.LastPacketTime = sess.PacketTime
-		case frame := <-sess.MQ:
+		case frame := <-sess.MQ: // packets from game
 			switch frame.Type {
 			case pb.Game_Message:
 				out.send(sess, frame.Message)
