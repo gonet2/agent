@@ -27,6 +27,11 @@ func P_heart_beat_req(sess *Session, reader *packet.Packet) []byte {
 }
 
 // 密钥交换
+// 加密建立方式: DH+RC4
+// 注意:完整的加密过程包括 RSA+DH+RC4
+// 1. RSA用于鉴定服务器的真伪(这步省略)
+// 2. DH用于在不安全的信道上协商安全的KEY
+// 3. RC4用于流加密
 func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 	tbl, _ := PKT_seed_info(reader)
 	// KEY1
@@ -58,12 +63,14 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 // 玩家登陆过程
 func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	// TODO: 登陆鉴权
+	// 简单鉴权可以在agent直接完成，通常公司都存在一个用户中心服务器用于鉴权
 	sess.UserId = 1
 
-	// TODO: 选择登陆服务器
+	// TODO: 选择GAME服务器
+	// 选服策略依据业务进行，比如小服可以固定选取某台，大服可以采用HASH或一致性HASH
 	sess.GSID = DEFAULT_GSID
 
-	// 选服
+	// 连接到已选定GAME服务器
 	conn := sp.GetServiceWithId(sp.DEFAULT_SERVICE_PATH+"/game", sess.GSID)
 	if conn == nil {
 		log.Critical("cannot get game service:", sess.GSID)
@@ -80,11 +87,10 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	}
 	sess.Stream = stream
 
-	// 在game注册
-	// TODO: 新用户的创建由game处理
+	// 在GAME登陆此玩家
 	sess.Stream.Send(&pb.Game_Frame{Type: pb.Game_Register, UserId: sess.UserId})
 
-	// 读取GAME返回消息
+	// 读取GAME返回消息的goroutine
 	fetcher_task := func(sess *Session) {
 		for {
 			in, err := sess.Stream.Recv()

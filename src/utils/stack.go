@@ -6,6 +6,7 @@ import (
 	"runtime"
 )
 
+// 产生panic时的调用栈打印
 func PrintPanicStack(extras ...interface{}) {
 	if x := recover(); x != nil {
 		log.Error(x)

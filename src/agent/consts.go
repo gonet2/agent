@@ -20,5 +20,5 @@ const (
 )
 
 const (
-	RPM_LIMIT = 300 // Request Per Minute
+	RPM_LIMIT = 300 // 每分钟请求数控制，超过此值可以判定为DOS攻击
 )

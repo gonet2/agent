@@ -15,7 +15,7 @@ const (
 	PRERNG = 1024
 )
 
-// 全局快速随机数发生器
+// 全局快速随机数发生器，比标准库快，简单，可预生成
 func init() {
 	LCG = make(chan uint32, PRERNG)
 	go func() {

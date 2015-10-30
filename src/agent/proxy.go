@@ -48,12 +48,12 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	if sess.Flag&SESS_ENCRYPT != 0 {
 		sess.Decoder.XORKeyStream(p, p)
 	}
-
 	// 封装为reader
 	reader := packet.Reader(p)
 
 	// 读客户端数据包序列号(1,2,3...)
-	// 可避免重放攻击-REPLAY-ATTACK
+	// 客户端发送的数据包必须包含一个自增的序号，必须严格递增
+	// 加密后，可避免重放攻击-REPLAY-ATTACK
 	seq_id, err := reader.ReadU32()
 	if err != nil {
 		log.Error("read client timestamp failed:", err)
@@ -77,6 +77,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	}
 
 	// 根据协议号断做服务划分
+	// 协议号的划分采用分割协议区间, 用户可以自定义多个区间，用于转发到不同的后端服务
 	var ret []byte
 	if b > MAX_PROTO_NUM {
 		if err := forward(sess, p[4:]); err != nil {
@@ -94,7 +95,9 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		}
 	}
 
-	// 统计处理时间
+	// 监控协议处理时间
+	// 监控数值会发送到statsd,格式为:
+	// API.XXX_REQ = 10ms
 	elasped := time.Now().Sub(start)
 	if b != 0 { // 排除心跳包日志
 		log.Trace("[REQ]", client_handler.RCode[b])
