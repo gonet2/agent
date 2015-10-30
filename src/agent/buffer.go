@@ -14,6 +14,8 @@ import (
 	"utils"
 )
 
+// PIPELINE #3: buffer
+// controls the packet sending for the client
 type Buffer struct {
 	ctrl    chan struct{} // receive exit signal
 	pending chan []byte   // pending packets
@@ -23,6 +25,7 @@ type Buffer struct {
 
 var (
 	// for padding packet, random content
+	// add some random content to confuse packet decrypter
 	_padding [PADDING_SIZE]byte
 )
 
@@ -47,11 +50,13 @@ func (buf *Buffer) send(sess *Session, data []byte) {
 
 	// padding
 	// if the size of the data to return is tiny, pad with some random numbers
+	// this strategy may change to randomize padding
 	if len(data) < PADDING_LIMIT {
 		data = append(data, _padding[:]...)
 	}
 
 	// encryption
+	// (NOT_ENCRYPTED) -> KEYEXCG -> ENCRYPT
 	if sess.Flag&SESS_ENCRYPT != 0 { // encryption is enabled
 		sess.Encoder.XORKeyStream(data, data)
 	} else if sess.Flag&SESS_KEYEXCG != 0 { // key is exchanged, encryption is not yet enabled
@@ -82,7 +87,7 @@ func (buf *Buffer) start() {
 
 // raw packet encapsulation and put it online
 func (buf *Buffer) raw_send(data []byte) bool {
-	// combine output
+	// combine output to reduce syscall.write
 	sz := len(data)
 	binary.BigEndian.PutUint16(buf.cache, uint16(sz))
 	copy(buf.cache[2:], data)
@@ -97,7 +102,7 @@ func (buf *Buffer) raw_send(data []byte) bool {
 	return true
 }
 
-// set send buffer size
+// change send buffer size
 func (buf *Buffer) set_write_buffer(bytes int) {
 	buf.conn.SetWriteBuffer(bytes)
 }

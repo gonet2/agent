@@ -11,7 +11,7 @@ import (
 )
 
 // PIPELINE #2: agent
-// process all the packets from handleClient()
+// all the packets from handleClient() will be handled
 func agent(sess *Session, in chan []byte, out *Buffer) {
 	defer wg.Done() // will decrease waitgroup by one, useful for manual server shutdown
 	defer utils.PrintPanicStack()
@@ -36,7 +36,7 @@ func agent(sess *Session, in chan []byte, out *Buffer) {
 	//  1. from client
 	//  2. from game service
 	//  3. timer
-	//  4. server die signal
+	//  4. server shutdown signal
 	for {
 		select {
 		case msg, ok := <-in: // packet from network
