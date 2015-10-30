@@ -4,7 +4,7 @@
 ## 设计理念
 设备只连接到网关，网关无状态，长连接。        
 
-## agent存在的价值           
+## agent功用           
 1. 数据包加解密(DH+RC4)         
 2. 透传原始数据到后端(bidirectional stream)
 3. 对协议(API)做测量，可视化(metrics visualization)
@@ -32,6 +32,9 @@
 > TIMESTAMP: 数据包序号           
 > PROTO: 协议号           
 > PAYLOAD: 负载           
+
+## 阅读
+源码阅读从src/agent/main.go开始
 
 # 环境变量
 > NSQD_HOST: eg : http://172.17.42.1:4151
