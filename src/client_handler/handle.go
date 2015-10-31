@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/metadata"
 
 	log "github.com/gonet2/libs/nsq-logger"
 )
@@ -79,16 +80,13 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	cli := pb.NewGameServiceClient(conn)
 
 	// 开启到游戏服的流
-	// TODO: 处理context，设定超时
-	stream, err := cli.Stream(context.Background())
+	ctx := metadata.NewContext(context.Background(), metadata.New(map[string]string{"userid": fmt.Sprint(sess.UserId)}))
+	stream, err := cli.Stream(ctx)
 	if err != nil {
 		log.Critical(err)
 		return nil
 	}
 	sess.Stream = stream
-
-	// 在GAME登陆此玩家
-	sess.Stream.Send(&pb.Game_Frame{Type: pb.Game_Register, UserId: sess.UserId})
 
 	// 读取GAME返回消息的goroutine
 	fetcher_task := func(sess *Session) {
