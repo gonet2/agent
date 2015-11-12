@@ -20,6 +20,7 @@
 具体的划分根据业务需求进行。
 
 ## 使用
+![agent](agent.gif)
 参考测试用例以及tools目录的simulate
 
 ## 封包

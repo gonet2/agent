@@ -7,5 +7,5 @@ import (
 func startup() {
 	go sig_handler()
 	// init services discovery
-	sp.Init()
+	sp.Init("game", "snowflake")
 }
