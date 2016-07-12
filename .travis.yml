@@ -4,7 +4,6 @@ go:
 install:
     - export GOPATH=$GOPATH/src/github.com/gonet2/agent
     - cd $GOPATH
-    - wget -qO- https://raw.githubusercontent.com/pote/gpm/v1.4.0/bin/gpm | bash
     - go install agent
 before_script:
 script:
