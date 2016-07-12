@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	log "github.com/gonet2/libs/nsq-logger"
+	log "github.com/Sirupsen/logrus"
 )
 
 import (

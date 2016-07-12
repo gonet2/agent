@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	log "github.com/gonet2/libs/nsq-logger"
+	log "github.com/Sirupsen/logrus"
 	"github.com/peterbourgon/g2s"
 )
 
@@ -34,7 +34,7 @@ func init() {
 
 	s, err := g2s.Dial("udp", addr)
 	if err != nil {
-		log.Critical(err)
+		log.Fatal(err)
 		os.Exit(-1)
 	}
 	_statter = s
@@ -100,7 +100,7 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 	// API.XXX_REQ = 10ms
 	elasped := time.Now().Sub(start)
 	if b != 0 { // 排除心跳包日志
-		log.Trace("[REQ]", client_handler.RCode[b])
+		log.Debug("[REQ]", client_handler.RCode[b])
 		_statter.Timing(1.0, fmt.Sprintf("%v%v", STATSD_PREFIX, client_handler.RCode[b]), elasped)
 	}
 	return ret

@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"
 
-	log "github.com/gonet2/libs/nsq-logger"
+	log "github.com/Sirupsen/logrus"
 )
 
 import (
@@ -47,12 +47,12 @@ func P_get_seed_req(sess *Session, reader *packet.Packet) []byte {
 	// 服务器加密种子是客户端解密种子
 	encoder, err := rc4.NewCipher([]byte(fmt.Sprintf("%v%v", SALT, KEY2)))
 	if err != nil {
-		log.Critical(err)
+		log.Error(err)
 		return nil
 	}
 	decoder, err := rc4.NewCipher([]byte(fmt.Sprintf("%v%v", SALT, KEY1)))
 	if err != nil {
-		log.Critical(err)
+		log.Error(err)
 		return nil
 	}
 	sess.Encoder = encoder
@@ -74,7 +74,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	// 连接到已选定GAME服务器
 	conn := sp.GetServiceWithId(sp.DEFAULT_SERVICE_PATH+"/game", sess.GSID)
 	if conn == nil {
-		log.Critical("cannot get game service:", sess.GSID)
+		log.Error("cannot get game service:", sess.GSID)
 		return nil
 	}
 	cli := pb.NewGameServiceClient(conn)
@@ -83,7 +83,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	ctx := metadata.NewContext(context.Background(), metadata.New(map[string]string{"userid": fmt.Sprint(sess.UserId)}))
 	stream, err := cli.Stream(ctx)
 	if err != nil {
-		log.Critical(err)
+		log.Error(err)
 		return nil
 	}
 	sess.Stream = stream
@@ -93,7 +93,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 		for {
 			in, err := sess.Stream.Recv()
 			if err == io.EOF { // 流关闭
-				log.Trace(err)
+				log.Debug(err)
 				return
 			}
 			if err != nil {

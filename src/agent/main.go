@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	log "github.com/gonet2/libs/nsq-logger" // nsq based logging
+	log "github.com/Sirupsen/logrus"
 )
 
 import (
@@ -33,9 +33,6 @@ func main() {
 	go func() {
 		log.Info(http.ListenAndServe("0.0.0.0:6060", nil))
 	}()
-
-	// set log prefix
-	log.SetPrefix(SERVICE)
 
 	// resolve address & start listening
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", _port)
@@ -153,7 +150,7 @@ func handleClient(conn *net.TCPConn) {
 
 func checkError(err error) {
 	if err != nil {
-		log.Critical(err)
+		log.Fatal(err)
 		os.Exit(-1)
 	}
 }
