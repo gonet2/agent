@@ -5,9 +5,9 @@ import (
 )
 
 import (
-	pb "pb"
-	. "types"
-	"utils"
+	pb "agent/pb"
+	. "agent/types"
+	"agent/utils"
 )
 
 // PIPELINE #2: agent

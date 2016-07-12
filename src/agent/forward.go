@@ -7,8 +7,8 @@ import (
 )
 
 import (
-	pb "pb"
-	. "types"
+	pb "agent/pb"
+	. "agent/types"
 )
 
 var (

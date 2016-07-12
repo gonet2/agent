@@ -1,15 +1,16 @@
 package main
 
 import (
-	log "github.com/gonet2/libs/nsq-logger"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+
+	log "github.com/gonet2/libs/nsq-logger"
 )
 
 import (
-	"utils"
+	"agent/utils"
 )
 
 var (

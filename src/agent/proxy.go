@@ -10,10 +10,10 @@ import (
 )
 
 import (
-	"client_handler"
-	"misc/packet"
-	. "types"
-	"utils"
+	"agent/client_handler"
+	"agent/misc/packet"
+	. "agent/types"
+	"agent/utils"
 )
 
 const (

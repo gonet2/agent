@@ -9,9 +9,9 @@ import (
 )
 
 import (
-	"misc/packet"
-	. "types"
-	"utils"
+	"agent/misc/packet"
+	. "agent/types"
+	"agent/utils"
 )
 
 // PIPELINE #3: buffer

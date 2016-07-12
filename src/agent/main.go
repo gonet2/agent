@@ -2,18 +2,19 @@ package main
 
 import (
 	"encoding/binary"
-	log "github.com/gonet2/libs/nsq-logger" // nsq based logging
 	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"time"
+
+	log "github.com/gonet2/libs/nsq-logger" // nsq based logging
 )
 
 import (
-	. "types"
-	"utils"
+	. "agent/types"
+	"agent/utils"
 )
 
 const (
