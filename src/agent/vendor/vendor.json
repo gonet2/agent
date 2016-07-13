@@ -45,6 +45,24 @@
 			"revisionTime": "2016-07-12T15:56:50Z"
 		},
 		{
+			"checksumSHA1": "iKPMvbAueGfdyHcWCgzwKzm8WVo=",
+			"path": "github.com/klauspost/cpuid",
+			"revision": "09cded8978dc9e80714c4d85b0322337b0a1e5e0",
+			"revisionTime": "2016-03-02T07:53:16Z"
+		},
+		{
+			"checksumSHA1": "hX+j017F4PEtIUGflAneDtLC6hs=",
+			"path": "github.com/klauspost/crc32",
+			"revision": "19b0b332c9e4516a6370a0456e6182c3b5036720",
+			"revisionTime": "2016-02-19T14:26:09Z"
+		},
+		{
+			"checksumSHA1": "usPITw9YHaAFn1FzTRX6PzV+EuA=",
+			"path": "github.com/klauspost/reedsolomon",
+			"revision": "467733eb9c209042fb37d2074a5b6be33a529be0",
+			"revisionTime": "2016-07-06T19:06:00Z"
+		},
+		{
 			"checksumSHA1": "98pC93jy7+oik3tlde3hVAoh3SE=",
 			"path": "github.com/peterbourgon/g2s",
 			"revision": "ec76db4c1ac16400ac0e17ca9c4840e1d23da5dc",
@@ -55,6 +73,30 @@
 			"path": "github.com/ugorji/go/codec",
 			"revision": "b94837a2404ab90efe9289e77a70694c355739cb",
 			"revisionTime": "2016-05-31T12:29:44Z"
+		},
+		{
+			"checksumSHA1": "Yt6HCRO73cCHE1pIZz4XzEKm/Tw=",
+			"path": "github.com/xtaci/kcp-go",
+			"revision": "9b06339142a3461f727cda16ee11d8d402f8bbbe",
+			"revisionTime": "2016-07-12T06:56:42Z"
+		},
+		{
+			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
+			"path": "golang.org/x/crypto/pbkdf2",
+			"revision": "2c99acdd1e9b90d779ca23f632aad86af9909c62",
+			"revisionTime": "2016-07-10T22:38:34Z"
+		},
+		{
+			"checksumSHA1": "Iwv89z1aXYKaB936lnsmE2NcfqA=",
+			"path": "golang.org/x/crypto/tea",
+			"revision": "2c99acdd1e9b90d779ca23f632aad86af9909c62",
+			"revisionTime": "2016-07-10T22:38:34Z"
+		},
+		{
+			"checksumSHA1": "tK8eFmQ0JeKpR3P0TjiGobzlIh0=",
+			"path": "golang.org/x/net/bpf",
+			"revision": "f841c39de738b1d0df95b5a7187744f0e03d8112",
+			"revisionTime": "2016-06-30T00:53:42Z"
 		},
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
@@ -75,8 +117,20 @@
 			"revisionTime": "2016-06-30T00:53:42Z"
 		},
 		{
+			"checksumSHA1": "yRuyntx9a59ugMi5NlN4ST0XRcI=",
+			"path": "golang.org/x/net/internal/iana",
+			"revision": "f841c39de738b1d0df95b5a7187744f0e03d8112",
+			"revisionTime": "2016-06-30T00:53:42Z"
+		},
+		{
 			"checksumSHA1": "/k7k6eJDkxXx6K9Zpo/OwNm58XM=",
 			"path": "golang.org/x/net/internal/timeseries",
+			"revision": "f841c39de738b1d0df95b5a7187744f0e03d8112",
+			"revisionTime": "2016-06-30T00:53:42Z"
+		},
+		{
+			"checksumSHA1": "BJrlL/vetMJZLv8XPuzvw3ZITaU=",
+			"path": "golang.org/x/net/ipv4",
 			"revision": "f841c39de738b1d0df95b5a7187744f0e03d8112",
 			"revisionTime": "2016-06-30T00:53:42Z"
 		},

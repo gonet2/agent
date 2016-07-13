@@ -10,9 +10,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-)
+	"github.com/xtaci/kcp-go"
 
-import (
 	. "agent/types"
 	"agent/utils"
 )
@@ -34,6 +33,14 @@ func main() {
 		log.Info(http.ListenAndServe("0.0.0.0:6060", nil))
 	}()
 
+	go tcpServer()
+	go udpServer()
+
+	// wait forever
+	select {}
+}
+
+func tcpServer() {
 	// resolve address & start listening
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", _port)
 	checkError(err)
@@ -46,7 +53,6 @@ func main() {
 	// startup
 	startup()
 
-LOOP:
 	// loop accepting
 	for {
 		conn, err := listener.AcceptTCP()
@@ -54,22 +60,47 @@ LOOP:
 			log.Warning("accept failed:", err)
 			continue
 		}
-		go handleClient(conn) // start a goroutine for every incoming connection for reading
+		// set socket read buffer
+		conn.SetReadBuffer(SO_RCVBUF)
+		// set socket write buffer
+		conn.SetWriteBuffer(SO_SNDBUF)
+		// start a goroutine for every incoming connection for reading
+		go handleClient(conn)
 
 		// check server close signal
 		select {
 		case <-die:
 			listener.Close()
-			break LOOP
+			return
 		default:
 		}
 	}
+}
 
-	// server closed, wait forever
-	// other options:
-	// select{} 	-- may cause deadlock detected error, not tested yet
+func udpServer() {
+	listener, err := kcp.Listen(_port)
+	checkError(err)
+	log.Info("udp listening on:", listener.Addr())
+
+	// loop accepting
 	for {
-		<-time.After(time.Second)
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Warning("accept failed:", err)
+			continue
+		}
+		// set kcp parameters
+		conn.SetNoDelay(1, 30, 2, 1)
+		// start a goroutine for every incoming connection for reading
+		go handleClient(conn)
+
+		// check server close signal
+		select {
+		case <-die:
+			listener.Close()
+			return
+		default:
+		}
 	}
 }
 
@@ -78,13 +109,8 @@ LOOP:
 // each packet is defined as :
 // | 2B size |     DATA       |
 //
-func handleClient(conn *net.TCPConn) {
+func handleClient(conn net.Conn) {
 	defer utils.PrintPanicStack()
-	// set socket read buffer
-	conn.SetReadBuffer(SO_RCVBUF)
-	// set socket write buffer
-	conn.SetWriteBuffer(SO_SNDBUF)
-
 	// for reading the 2-Byte header
 	header := make([]byte, 2)
 	// the input channel for agent()

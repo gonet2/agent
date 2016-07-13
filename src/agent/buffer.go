@@ -19,7 +19,7 @@ import (
 type Buffer struct {
 	ctrl    chan struct{} // receive exit signal
 	pending chan []byte   // pending packets
-	conn    *net.TCPConn  // connection
+	conn    net.Conn      // connection
 	cache   []byte        // for combined syscall write
 }
 
@@ -102,13 +102,8 @@ func (buf *Buffer) raw_send(data []byte) bool {
 	return true
 }
 
-// change send buffer size
-func (buf *Buffer) set_write_buffer(bytes int) {
-	buf.conn.SetWriteBuffer(bytes)
-}
-
 // create a associated write buffer for a session
-func new_buffer(conn *net.TCPConn, ctrl chan struct{}) *Buffer {
+func new_buffer(conn net.Conn, ctrl chan struct{}) *Buffer {
 	buf := Buffer{conn: conn}
 	buf.pending = make(chan []byte)
 	buf.ctrl = ctrl
