@@ -33,6 +33,9 @@ func main() {
 		log.Info(http.ListenAndServe("0.0.0.0:6060", nil))
 	}()
 
+	// startup
+	startup()
+
 	go tcpServer()
 	go udpServer()
 
@@ -49,9 +52,6 @@ func tcpServer() {
 	checkError(err)
 
 	log.Info("listening on:", listener.Addr())
-
-	// startup
-	startup()
 
 	// loop accepting
 	for {
