@@ -32,6 +32,3 @@
 
 ## 阅读
 源码阅读从src/agent/main.go开始
-
-# 依赖关系
-[![Dependency](http://gonet2.github.io/agent.svg)](http://gonet2.github.io/agent.svg)
