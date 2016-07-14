@@ -33,8 +33,5 @@
 ## 阅读
 源码阅读从src/agent/main.go开始
 
-# 环境变量
-> NSQD_HOST: eg : http://172.17.42.1:4151
-
 # 依赖关系
 [![Dependency](http://gonet2.github.io/agent.svg)](http://gonet2.github.io/agent.svg)
