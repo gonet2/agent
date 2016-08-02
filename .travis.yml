@@ -2,7 +2,7 @@ language: go
 go:
     - tip
 install:
-    - go install github.com/gonet2/agent
+    - go get github.com/gonet2/agent
 before_script:
 script:
     - exit 0
