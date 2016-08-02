@@ -1,9 +1,9 @@
-sudo: required
-
 language: go
-
-services:
-    - docker
-
-before_install:
-    - docker build -t xtaci/agent .
+go:
+    - tip
+go_import_path: github.com/gonet2/agent
+install:
+    - go install agent
+before_script:
+script:
+    - exit 0
