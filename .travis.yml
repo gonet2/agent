@@ -2,8 +2,6 @@ language: go
 go:
     - tip
 install:
-    - export GOPATH=$GOPATH/src/github.com/gonet2/agent
-    - cd $GOPATH
     - go install agent
 before_script:
 script:
