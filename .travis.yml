@@ -1,6 +1,9 @@
 sudo: required
+
 language: go
-service:
+
+services:
     - docker
-install:
+
+before_install:
     - docker build -t xtaci/agent .
