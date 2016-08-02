@@ -1,4 +1,4 @@
-FROM golang:1.6
+FROM golang:latest
 MAINTAINER xtaci <daniel820313@gmail.com>
 COPY . /go/src/agent
 RUN go install agent
