@@ -3,7 +3,7 @@ go:
     - tip
 go_import_path: github.com/gonet2/agent
 install:
-    - go install agent
+    - go install github.com/gonet2/agent
 before_script:
 script:
     - exit 0
