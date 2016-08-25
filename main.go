@@ -84,7 +84,7 @@ func udpServer() {
 
 	// loop accepting
 	for {
-		conn, err := listener.Accept()
+		conn, err := listener.AcceptKCP()
 		if err != nil {
 			log.Warning("accept failed:", err)
 			continue
