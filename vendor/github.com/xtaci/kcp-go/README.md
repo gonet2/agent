@@ -1,4 +1,6 @@
-# ***kcp-go*** :pisces:
+<img src="kcp-go.png" alt="kcp-go" height="50px" />
+
+
 [![GoDoc][1]][2] [![Powered][9]][10] [![MIT licensed][11]][12] [![Build Status][3]][4] [![Go Report Card][5]][6] [![Coverage Statusd][7]][8]
 
 [1]: https://godoc.org/github.com/xtaci/kcp-go?status.svg
@@ -14,26 +16,35 @@
 [11]: https://img.shields.io/badge/license-MIT-blue.svg
 [12]: LICENSE
 
-***A full-featured reliable UDP communication library.***      
 [![Claude_Shannon](shannon.jpg)](https://en.wikipedia.org/wiki/Claude_Shannon)
 
-# ***Frame Format*** :zap:
-# <img src="frame.png" alt="Frame Format" height="160px" /> 
+## Introduction
 
-# ***Features*** :zap:
+kcp-go is a full-featured ***Reliable-UDP*** library for golang. It provides ***reliable, ordered, and error-checked*** delivery of a stream of octets between applications running on hosts communicating over an IP network.
+
+## Features
+
 1. Optimized for ***Real-Time Strategy Game***.
-1. Compatible with [skywind3000's](https://github.com/skywind3000) C version with modifications.
+1. Compatible with [skywind3000's](https://github.com/skywind3000) C version with optimizations.
 1. ***Cache friendly*** and ***Memory optimized*** design in golang.
-1. A [session manager](https://github.com/xtaci/kcp-go/blob/master/sess.go) has been provided, compatible with [net.Conn](https://golang.org/pkg/net/#Conn) and [net.Listener](https://golang.org/pkg/net/#Listener).
+1. Compatible with [net.Conn](https://golang.org/pkg/net/#Conn) and [net.Listener](https://golang.org/pkg/net/#Listener).
 1. [FEC(Forward Error Correction)](https://en.wikipedia.org/wiki/Forward_error_correction) Support with [Reed-Solomon Codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction)
-1. Packet level encryption support with [AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard), [TEA](https://en.wikipedia.org/wiki/Tiny_Encryption_Algorithm), [3DES](https://en.wikipedia.org/wiki/Triple_DES), [Blowfish](https://en.wikipedia.org/wiki/Blowfish_(cipher)), [Cast5](https://en.wikipedia.org/wiki/CAST-128).
+1. Packet level encryption support with [AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard), [TEA](https://en.wikipedia.org/wiki/Tiny_Encryption_Algorithm), [3DES](https://en.wikipedia.org/wiki/Triple_DES), [Blowfish](https://en.wikipedia.org/wiki/Blowfish_(cipher)), [Cast5](https://en.wikipedia.org/wiki/CAST-128), [Salsa20]( https://en.wikipedia.org/wiki/Salsa20), etc. in [CFB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Feedback_.28CFB.29) mode.
 
-# ***Conventions*** :zap:
-1. Packet delivery via [UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol).
-2. The conversation id ```conv uint32``` in session manager should be a ***random number*** initiated by client.
-3. KCP doesn't define session control messages like SYN/FIN/RST in TCP, a real world example is to use some ***multiplexing*** protocol over session, such as [yamux](https://github.com/hashicorp/yamux), see [kcptun](https://github.com/xtaci/kcptun) for example.
+## Conventions
 
-# ***Examples*** :zap:
+Control messages like SYN/FIN/RST in TCP ***are not defined*** in KCP, you need some ***keepalive mechanims*** in the application-level. a real world example is to use some ***multiplexing*** protocol over session, such as [smux](https://github.com/xtaci/smux), see [kcptun](https://github.com/xtaci/kcptun) for example.
+
+## Documentation
+
+For complete documentation, see the associated [Godoc](https://godoc.org/github.com/xtaci/kcp-go).
+
+## Specification
+
+<img src="frame.png" alt="Frame Format" height="109px" />
+
+## Usage
+
 Client:   [full demo](https://github.com/xtaci/kcptun/blob/master/client/main.go#L231)
 ```go
 kcpconn, err := kcp.DialWithOptions("192.168.0.1:10000", nil, 10, 3)
@@ -43,7 +54,7 @@ Server:   [full demo](https://github.com/xtaci/kcptun/blob/master/server/main.go
 lis, err := kcp.ListenWithOptions(":10000", nil, 10, 3)
 ```
 
-# ***Performance*** :zap:
+## Performance
 ```
   型号名称：	MacBook Pro
   型号标识符：	MacBookPro12,1
@@ -65,12 +76,14 @@ PASS
 ok  	github.com/xtaci/kcp-go	0.600s
 ```
 
-# ***Links*** :zap:
-1. https://github.com/xtaci/libkcp -- Official client library for iOS/Android(C++11)
+## Who is using this?
+
+1. https://github.com/xtaci/kcptun
+2. https://github.com/getlantern/lantern
+3. https://github.com/smallnest/rpcx
+
+## Links
+
+1. https://github.com/xtaci/libkcp -- FEC enhanced KCP session library for iOS/Android in C++
 2. https://github.com/skywind3000/kcp -- A Fast and Reliable ARQ Protocol
 3. https://github.com/klauspost/reedsolomon -- Reed-Solomon Erasure Coding in Go
-
-# ***Donation*** :dollar:
-![donate](donate.png)          
-
-All donations on this project will be used to support the development of [gonet/2](http://gonet2.github.io/).

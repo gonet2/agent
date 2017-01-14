@@ -69,16 +69,22 @@
 			"revisionTime": "2014-09-25T15:41:42Z"
 		},
 		{
+			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
+			"path": "github.com/pkg/errors",
+			"revision": "248dadf4e9068a0b3e79f02ed0a610d935de5302",
+			"revisionTime": "2016-10-29T09:36:37Z"
+		},
+		{
 			"checksumSHA1": "UADS3X1kxl+/qqeGcmTo0rBiXlQ=",
 			"path": "github.com/ugorji/go/codec",
 			"revision": "b94837a2404ab90efe9289e77a70694c355739cb",
 			"revisionTime": "2016-05-31T12:29:44Z"
 		},
 		{
-			"checksumSHA1": "9pR7dWfw3Saqy2aTVc2MWL3cnNU=",
+			"checksumSHA1": "6/a2ggUxGU1nNSFFzU2J3LLykI4=",
 			"path": "github.com/xtaci/kcp-go",
-			"revision": "27c4352ef325d4cc3f4ea8cf6cad952e473b9ee4",
-			"revisionTime": "2016-08-25T04:07:07Z"
+			"revision": "481baf3264d96de9e00047ca4dffe1ccbfb8fb08",
+			"revisionTime": "2017-01-14T05:26:23Z"
 		},
 		{
 			"checksumSHA1": "JsJdKXhz87gWenMwBeejTOeNE7k=",

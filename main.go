@@ -78,29 +78,26 @@ func tcpServer() {
 }
 
 func udpServer() {
-	listener, err := kcp.Listen(_port)
+	l, err := kcp.Listen(_port)
 	checkError(err)
-	log.Info("udp listening on:", listener.Addr())
+	log.Info("udp listening on:", l.Addr())
+	lis := l.(*kcp.Listener)
 
 	// loop accepting
 	for {
-		conn, err := listener.AcceptKCP()
+		conn, err := lis.AcceptKCP()
 		if err != nil {
 			log.Warning("accept failed:", err)
 			continue
 		}
 		// set kcp parameters
-		conn.SetNoDelay(1, 30, 2, 1)
+		conn.SetWindowSize(32, 32)
+		conn.SetNoDelay(1, 20, 1, 1)
+		conn.SetKeepAlive(0) // require application ping
+		conn.SetStreamMode(true)
+
 		// start a goroutine for every incoming connection for reading
 		go handleClient(conn)
-
-		// check server close signal
-		select {
-		case <-die:
-			listener.Close()
-			return
-		default:
-		}
 	}
 }
 
