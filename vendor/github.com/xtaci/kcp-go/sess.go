@@ -30,7 +30,7 @@ const (
 	crcSize                  = 4   // 4bytes packet checksum
 	cryptHeaderSize          = nonceSize + crcSize
 	mtuLimit                 = 2048
-	txQueueLimit             = 8192
+	rxQueueLimit             = 8192
 	rxFECMulti               = 3 // FEC keeps rxFECMulti* (dataShard+parityShard) ordered packets in memory
 	defaultKeepAliveInterval = 10
 )
@@ -478,17 +478,15 @@ func (s *UDPSession) outputTask() {
 			atomic.AddUint64(&DefaultSnmp.OutBytes, uint64(nbytes))
 			xmitBuf.Put(ext)
 		case <-ticker.C: // NAT keep-alive
-			if len(s.chUDPOutput) == 0 {
-				interval := time.Duration(atomic.LoadInt32(&s.keepAliveInterval)) * time.Second
-				if interval > 0 && time.Now().After(lastPing.Add(interval)) {
-					var rnd uint16
-					binary.Read(rand.Reader, binary.LittleEndian, &rnd)
-					sz := int(rnd)%(IKCP_MTU_DEF-s.headerSize-IKCP_OVERHEAD) + s.headerSize + IKCP_OVERHEAD
-					ping := make([]byte, sz) // randomized ping packet
-					io.ReadFull(rand.Reader, ping)
-					s.conn.WriteTo(ping, s.remote)
-					lastPing = time.Now()
-				}
+			interval := time.Duration(atomic.LoadInt32(&s.keepAliveInterval)) * time.Second
+			if interval > 0 && time.Now().After(lastPing.Add(interval)) {
+				var rnd uint16
+				binary.Read(rand.Reader, binary.LittleEndian, &rnd)
+				sz := int(rnd)%(IKCP_MTU_DEF-s.headerSize-IKCP_OVERHEAD) + s.headerSize + IKCP_OVERHEAD
+				ping := make([]byte, sz) // randomized ping packet
+				io.ReadFull(rand.Reader, ping)
+				s.conn.WriteTo(ping, s.remote)
+				lastPing = time.Now()
 			}
 		case <-s.die:
 			return
@@ -628,7 +626,7 @@ func (s *UDPSession) receiver(ch chan []byte) {
 
 // read loop for client session
 func (s *UDPSession) readLoop() {
-	chPacket := make(chan []byte, txQueueLimit)
+	chPacket := make(chan []byte, rxQueueLimit)
 	go s.receiver(chPacket)
 
 	for {
@@ -685,7 +683,7 @@ type (
 
 // monitor incoming data for all connections of server
 func (l *Listener) monitor() {
-	chPacket := make(chan packet, txQueueLimit)
+	chPacket := make(chan packet, rxQueueLimit)
 	go l.receiver(chPacket)
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
