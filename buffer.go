@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/binary"
 	"net"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -23,36 +22,11 @@ type Buffer struct {
 	cache   []byte        // for combined syscall write
 }
 
-var (
-	// for padding packet, random content
-	// add some random content to confuse packet decrypter
-	_padding [PADDING_SIZE]byte
-)
-
-func init() {
-	go func() { // padding content update procedure
-		for {
-			for k := range _padding {
-				_padding[k] = byte(<-utils.LCG)
-			}
-			log.Info("Padding Updated:", _padding)
-			<-time.After(PADDING_UPDATE_PERIOD * time.Second)
-		}
-	}()
-}
-
 // packet sending procedure
 func (buf *Buffer) send(sess *Session, data []byte) {
 	// in case of empty packet
 	if data == nil {
 		return
-	}
-
-	// padding
-	// if the size of the data to return is tiny, pad with some random numbers
-	// this strategy may change to randomize padding
-	if len(data) < PADDING_LIMIT {
-		data = append(data, _padding[:]...)
 	}
 
 	// encryption

@@ -63,12 +63,6 @@
 			"revisionTime": "2016-07-06T19:06:00Z"
 		},
 		{
-			"checksumSHA1": "98pC93jy7+oik3tlde3hVAoh3SE=",
-			"path": "github.com/peterbourgon/g2s",
-			"revision": "ec76db4c1ac16400ac0e17ca9c4840e1d23da5dc",
-			"revisionTime": "2014-09-25T15:41:42Z"
-		},
-		{
 			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
 			"path": "github.com/pkg/errors",
 			"revision": "248dadf4e9068a0b3e79f02ed0a610d935de5302",
@@ -265,6 +259,12 @@
 			"revisionTime": "2016-08-19T18:23:41Z",
 			"version": "=v1.0.1-GA",
 			"versionExact": "v1.0.1-GA"
+		},
+		{
+			"checksumSHA1": "exMnsyei9H9PgttMUskof6S2554=",
+			"path": "gopkg.in/urfave/cli.v2",
+			"revision": "e485446237011b8abac93919242e6f059ad56c87",
+			"revisionTime": "2016-10-29T22:39:47Z"
 		}
 	],
 	"rootPath": "agent"

@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/peterbourgon/g2s"
 )
 
 import (
@@ -15,30 +12,6 @@ import (
 	. "agent/types"
 	"agent/utils"
 )
-
-const (
-	STATSD_PREFIX       = "API."
-	ENV_STATSD          = "STATSD_HOST"
-	DEFAULT_STATSD_HOST = "172.17.42.1:8125"
-)
-
-var (
-	_statter g2s.Statter
-)
-
-func init() {
-	addr := DEFAULT_STATSD_HOST
-	if env := os.Getenv(ENV_STATSD); env != "" {
-		addr = env
-	}
-
-	s, err := g2s.Dial("udp", addr)
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(-1)
-	}
-	_statter = s
-}
 
 // client protocol handle proxy
 func proxy_user_request(sess *Session, p []byte) []byte {
@@ -95,13 +68,11 @@ func proxy_user_request(sess *Session, p []byte) []byte {
 		}
 	}
 
-	// 监控协议处理时间
-	// 监控数值会发送到statsd,格式为:
-	// API.XXX_REQ = 10ms
 	elasped := time.Now().Sub(start)
 	if b != 0 { // 排除心跳包日志
-		log.Debug("[REQ]", client_handler.RCode[b])
-		_statter.Timing(1.0, fmt.Sprintf("%v%v", STATSD_PREFIX, client_handler.RCode[b]), elasped)
+		log.WithFields(log.Fields{"cost": elasped,
+			"api":  client_handler.RCode[b],
+			"code": b}).Debug("REQ")
 	}
 	return ret
 }

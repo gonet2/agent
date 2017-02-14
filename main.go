@@ -9,11 +9,12 @@ import (
 	"os"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/xtaci/kcp-go"
-
 	. "agent/types"
 	"agent/utils"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/xtaci/kcp-go"
+	cli "gopkg.in/urfave/cli.v2"
 )
 
 const (
@@ -25,22 +26,54 @@ const (
 )
 
 func main() {
+	log.SetLevel(log.DebugLevel)
+
 	// to catch all uncaught panic
 	defer utils.PrintPanicStack()
 
 	// open profiling
-	go func() {
-		log.Info(http.ListenAndServe("0.0.0.0:6060", nil))
-	}()
+	go http.ListenAndServe("0.0.0.0:6060", nil)
+	app := &cli.App{
+		Name: "agent",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "listen",
+				Value: ":8888",
+				Usage: "listening address:port",
+			},
+			&cli.StringSliceFlag{
+				Name:  "etcd-hosts",
+				Value: cli.NewStringSlice("http://127.0.0.1:2379"),
+				Usage: "etcd hosts",
+			},
+			&cli.StringFlag{
+				Name:  "etcd-root",
+				Value: "/backends",
+				Usage: "etcd root path",
+			},
+			&cli.StringSliceFlag{
+				Name:  "services",
+				Value: cli.NewStringSlice("snowflake-10000", "game-10000"),
+				Usage: "auto-discovering services",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			log.Println("listen:", c.String("listen"))
+			log.Println("etcd-hosts:", c.StringSlice("etcd-hosts"))
+			log.Println("etcd-root:", c.String("etcd-root"))
+			log.Println("services:", c.StringSlice("services"))
+			// init services
+			startup(c)
 
-	// startup
-	startup()
+			// listeners
+			go tcpServer()
+			go udpServer()
 
-	go tcpServer()
-	go udpServer()
-
-	// wait forever
-	select {}
+			// wait forever
+			select {}
+		},
+	}
+	app.Run(os.Args)
 }
 
 func tcpServer() {

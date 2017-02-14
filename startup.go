@@ -1,11 +1,12 @@
 package main
 
 import (
-	sp "github.com/gonet2/libs/services"
+	"agent/services"
+
+	cli "gopkg.in/urfave/cli.v2"
 )
 
-func startup() {
+func startup(c *cli.Context) {
 	go sig_handler()
-	// init services discovery
-	sp.Init("game", "snowflake")
+	services.Init(c)
 }
