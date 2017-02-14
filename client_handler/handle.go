@@ -9,16 +9,15 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"
 
-	log "github.com/Sirupsen/logrus"
-)
-
-import (
 	"agent/misc/crypto/dh"
 	"agent/misc/packet"
-	pb "agent/pb"
-	. "agent/types"
+	"agent/services"
 
-	sp "github.com/gonet2/libs/services"
+	log "github.com/Sirupsen/logrus"
+
+	pb "agent/pb"
+
+	. "agent/types"
 )
 
 // 心跳包
@@ -72,7 +71,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 	sess.GSID = DEFAULT_GSID
 
 	// 连接到已选定GAME服务器
-	conn := sp.GetServiceWithId(sp.DEFAULT_SERVICE_PATH+"/game", sess.GSID)
+	conn := services.GetServiceWithId("game-10000", sess.GSID)
 	if conn == nil {
 		log.Error("cannot get game service:", sess.GSID)
 		return nil

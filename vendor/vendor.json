@@ -39,12 +39,6 @@
 			"revisionTime": "2016-06-29T21:10:53Z"
 		},
 		{
-			"checksumSHA1": "5c01kBDxRP/y2XZHCnuslN2ZoUA=",
-			"path": "github.com/gonet2/libs/services",
-			"revision": "bf8c3888f17589f6253ef142fbdf9facadeabd09",
-			"revisionTime": "2016-07-28T04:21:58Z"
-		},
-		{
 			"checksumSHA1": "iKPMvbAueGfdyHcWCgzwKzm8WVo=",
 			"path": "github.com/klauspost/cpuid",
 			"revision": "09cded8978dc9e80714c4d85b0322337b0a1e5e0",
