@@ -69,10 +69,16 @@
 			"revisionTime": "2016-05-31T12:29:44Z"
 		},
 		{
-			"checksumSHA1": "n9i8g3GADUNlnJjYrEJq7j980dM=",
+			"checksumSHA1": "yox3VzZulxwgHOUaJBY2YLtzqe0=",
 			"path": "github.com/xtaci/kcp-go",
-			"revision": "fa77ab6db91050f85bdd0ca63581d49c8eab2dd8",
-			"revisionTime": "2017-01-16T04:12:54Z"
+			"revision": "6ad957ac2ff5b88aa27bfe27b479a210afa55f3e",
+			"revisionTime": "2017-02-14T07:59:25Z"
+		},
+		{
+			"checksumSHA1": "9k2RbR3Z651NhoCR3n21e/u/Fw8=",
+			"path": "github.com/xtaci/reedsolomon",
+			"revision": "7bbd3662bdabfaafbe1552513e42a976fe7e7f55",
+			"revisionTime": "2017-01-30T04:06:13Z"
 		},
 		{
 			"checksumSHA1": "JsJdKXhz87gWenMwBeejTOeNE7k=",

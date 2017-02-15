@@ -3,6 +3,7 @@ package kcp
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"hash/crc32"
 	"io"
 	"net"
 	"sync"
@@ -10,9 +11,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/klauspost/crc32"
-
 	"golang.org/x/net/ipv4"
 )
 
@@ -65,13 +63,13 @@ type (
 		die               chan struct{}
 		chReadEvent       chan struct{}
 		chWriteEvent      chan struct{}
-		chTicker          chan time.Time
 		chUDPOutput       chan []byte
 		headerSize        int
 		ackNoDelay        bool
 		isClosed          bool
 		keepAliveInterval int32
 		mu                sync.Mutex
+		updateInterval    int32
 	}
 
 	setReadBuffer interface {
@@ -86,7 +84,6 @@ type (
 // newUDPSession create a new udp session for client or server
 func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn net.PacketConn, remote net.Addr, block BlockCrypt) *UDPSession {
 	sess := new(UDPSession)
-	sess.chTicker = make(chan time.Time, 1)
 	sess.chUDPOutput = make(chan []byte)
 	sess.die = make(chan struct{})
 	sess.chReadEvent = make(chan struct{}, 1)
@@ -335,6 +332,7 @@ func (s *UDPSession) SetNoDelay(nodelay, interval, resend, nc int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.kcp.NoDelay(nodelay, interval, resend, nc)
+	atomic.StoreInt32(&s.updateInterval, int32(interval))
 }
 
 // SetDSCP sets the 6bit DSCP field of IP header, no effect if it's accepted from Listener
@@ -408,6 +406,8 @@ func (s *UDPSession) outputTask() {
 
 	for {
 		select {
+		// receive from a synchronous channel
+		// buffered channel must be avoided, because of "bufferbloat"
 		case ext := <-s.chUDPOutput:
 			var ecc [][]byte
 			if s.fec != nil {
@@ -496,24 +496,18 @@ func (s *UDPSession) outputTask() {
 
 // kcp update, input loop
 func (s *UDPSession) updateTask() {
-	var tc <-chan time.Time
-	if s.l == nil { // client
-		ticker := time.NewTicker(10 * time.Millisecond)
-		tc = ticker.C
-		defer ticker.Stop()
-	} else {
-		tc = s.chTicker
-	}
+	tc := time.After(time.Duration(atomic.LoadInt32(&s.updateInterval)) * time.Millisecond)
 
 	for {
 		select {
 		case <-tc:
 			s.mu.Lock()
-			s.kcp.Update()
-			if s.kcp.WaitSnd() < 2*int(s.kcp.snd_wnd) {
+			s.kcp.flush()
+			if s.kcp.WaitSnd() < int(s.kcp.snd_wnd) {
 				s.notifyWriteEvent()
 			}
 			s.mu.Unlock()
+			tc = time.After(time.Duration(atomic.LoadInt32(&s.updateInterval)) * time.Millisecond)
 		case <-s.die:
 			if s.l != nil { // has listener
 				select {
@@ -546,18 +540,23 @@ func (s *UDPSession) notifyWriteEvent() {
 }
 
 func (s *UDPSession) kcpInput(data []byte) {
+	var kcpInErrors, fecErrs, fecRecovered, fecSegs uint64
+
 	if s.fec != nil {
 		f := s.fec.decode(data)
+		s.mu.Lock()
+		if f.flag == typeData {
+			if ret := s.kcp.Input(data[fecHeaderSizePlus2:], true); ret != 0 {
+				kcpInErrors++
+			}
+		}
+
 		if f.flag == typeData || f.flag == typeFEC {
 			if f.flag == typeFEC {
-				atomic.AddUint64(&DefaultSnmp.FECSegs, 1)
+				fecSegs++
 			}
 
 			if recovers := s.fec.input(f); recovers != nil {
-				s.mu.Lock()
-				kcpInErrors := uint64(0)
-				fecErrs := uint64(0)
-				fecRecovered := uint64(0)
 				for _, r := range recovers {
 					if len(r) >= 2 { // must be larger than 2bytes
 						sz := binary.LittleEndian.Uint16(r)
@@ -574,38 +573,46 @@ func (s *UDPSession) kcpInput(data []byte) {
 						fecErrs++
 					}
 				}
-				s.mu.Unlock()
-				atomic.AddUint64(&DefaultSnmp.KCPInErrors, kcpInErrors)
-				atomic.AddUint64(&DefaultSnmp.FECErrs, fecErrs)
-				atomic.AddUint64(&DefaultSnmp.FECRecovered, fecRecovered)
 			}
 		}
-		if f.flag == typeData {
-			s.mu.Lock()
-			if ret := s.kcp.Input(data[fecHeaderSizePlus2:], true); ret != 0 {
-				atomic.AddUint64(&DefaultSnmp.KCPInErrors, 1)
-			}
-			s.mu.Unlock()
+
+		// notify reader
+		if n := s.kcp.PeekSize(); n > 0 {
+			s.notifyReadEvent()
 		}
+		if s.ackNoDelay {
+			s.kcp.flush()
+		}
+		s.mu.Unlock()
 	} else {
 		s.mu.Lock()
 		if ret := s.kcp.Input(data, true); ret != 0 {
-			atomic.AddUint64(&DefaultSnmp.KCPInErrors, 1)
+			kcpInErrors++
+		}
+		// notify reader
+		if n := s.kcp.PeekSize(); n > 0 {
+			s.notifyReadEvent()
+		}
+		if s.ackNoDelay {
+			s.kcp.flush()
 		}
 		s.mu.Unlock()
 	}
 
-	// notify reader
-	s.mu.Lock()
-	if n := s.kcp.PeekSize(); n > 0 {
-		s.notifyReadEvent()
-	}
-	if s.ackNoDelay {
-		s.kcp.flush()
-	}
-	s.mu.Unlock()
 	atomic.AddUint64(&DefaultSnmp.InSegs, 1)
 	atomic.AddUint64(&DefaultSnmp.InBytes, uint64(len(data)))
+	if fecSegs > 0 {
+		atomic.AddUint64(&DefaultSnmp.FECSegs, fecSegs)
+	}
+	if kcpInErrors > 0 {
+		atomic.AddUint64(&DefaultSnmp.KCPInErrors, kcpInErrors)
+	}
+	if fecErrs > 0 {
+		atomic.AddUint64(&DefaultSnmp.FECErrs, fecErrs)
+	}
+	if fecRecovered > 0 {
+		atomic.AddUint64(&DefaultSnmp.FECRecovered, fecRecovered)
+	}
 }
 
 func (s *UDPSession) receiver(ch chan []byte) {
@@ -685,8 +692,6 @@ type (
 func (l *Listener) monitor() {
 	chPacket := make(chan packet, rxQueueLimit)
 	go l.receiver(chPacket)
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
 	for {
 		select {
 		case p := <-chPacket:
@@ -741,14 +746,6 @@ func (l *Listener) monitor() {
 			delete(l.sessions, deadlink.String())
 		case <-l.die:
 			return
-		case <-ticker.C:
-			now := time.Now()
-			for _, s := range l.sessions {
-				select {
-				case s.chTicker <- now:
-				default:
-				}
-			}
 		}
 	}
 }

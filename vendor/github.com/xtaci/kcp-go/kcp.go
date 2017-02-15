@@ -2,7 +2,6 @@
 package kcp
 
 import (
-	"container/heap"
 	"encoding/binary"
 	"sync/atomic"
 )
@@ -143,7 +142,7 @@ type KCP struct {
 	snd_buf   []Segment
 	rcv_buf   []Segment
 
-	acklist ackList
+	acklist []ackItem
 
 	buffer []byte
 	output Output
@@ -152,20 +151,6 @@ type KCP struct {
 type ackItem struct {
 	sn uint32
 	ts uint32
-}
-
-type ackList []ackItem
-
-func (l ackList) Len() int            { return len(l) }
-func (l ackList) Less(i, j int) bool  { return l[i].sn < l[j].sn }
-func (l ackList) Swap(i, j int)       { l[i], l[j] = l[j], l[i] }
-func (l *ackList) Push(x interface{}) { *l = append(*l, x.(ackItem)) }
-func (l *ackList) Pop() interface{} {
-	old := *l
-	n := len(old)
-	x := old[n-1]
-	*l = old[0 : n-1]
-	return x
 }
 
 // NewKCP create a new kcp control object, 'conv' must equal in two endpoint
@@ -368,7 +353,7 @@ func (kcp *KCP) update_ack(rtt int32) {
 			kcp.rx_srtt = 1
 		}
 	}
-	rto = kcp.rx_srtt + _imax_(1, 4*kcp.rx_rttval)
+	rto = kcp.rx_srtt + _imax_(kcp.interval, 4*kcp.rx_rttval)
 	kcp.rx_rto = _ibound_(kcp.rx_minrto, rto, IKCP_RTO_MAX)
 }
 
@@ -432,7 +417,7 @@ func (kcp *KCP) parse_una(una uint32) {
 
 // ack append
 func (kcp *KCP) ack_push(sn, ts uint32) {
-	heap.Push(&kcp.acklist, ackItem{sn, ts})
+	kcp.acklist = append(kcp.acklist, ackItem{sn, ts})
 }
 
 func (kcp *KCP) parse_data(newseg *Segment) {
@@ -488,14 +473,15 @@ func (kcp *KCP) parse_data(newseg *Segment) {
 
 // Input when you received a low level packet (eg. UDP packet), call it
 func (kcp *KCP) Input(data []byte, update_ack bool) int {
-	current := currentMs()
 	una := kcp.snd_una
 	if len(data) < IKCP_OVERHEAD {
 		return -1
 	}
 
 	var maxack uint32
+	var recentack uint32
 	var flag int
+
 	for {
 		var ts, sn, length, una, conv uint32
 		var wnd uint16
@@ -531,9 +517,6 @@ func (kcp *KCP) Input(data []byte, update_ack bool) int {
 		kcp.shrink_buf()
 
 		if cmd == IKCP_CMD_ACK {
-			if update_ack && _itimediff(current, ts) >= 0 {
-				kcp.update_ack(_itimediff(current, ts))
-			}
 			kcp.parse_ack(sn)
 			kcp.shrink_buf()
 			if flag == 0 {
@@ -542,6 +525,7 @@ func (kcp *KCP) Input(data []byte, update_ack bool) int {
 			} else if _itimediff(sn, maxack) > 0 {
 				maxack = sn
 			}
+			recentack = ts
 		} else if cmd == IKCP_CMD_PUSH {
 			if _itimediff(sn, kcp.rcv_nxt+kcp.rcv_wnd) < 0 {
 				kcp.ack_push(sn, ts)
@@ -575,8 +559,12 @@ func (kcp *KCP) Input(data []byte, update_ack bool) int {
 		data = data[length:]
 	}
 
+	current := currentMs()
 	if flag != 0 && update_ack {
 		kcp.parse_fastack(maxack)
+		if _itimediff(current, recentack) >= 0 {
+			kcp.update_ack(_itimediff(current, recentack))
+		}
 	}
 
 	if _itimediff(kcp.snd_una, una) > 0 {
@@ -617,9 +605,6 @@ func (kcp *KCP) flush() {
 	change := 0
 	lost := false
 
-	if kcp.updated == 0 {
-		return
-	}
 	var seg Segment
 	seg.conv = kcp.conv
 	seg.cmd = IKCP_CMD_ACK
@@ -628,14 +613,14 @@ func (kcp *KCP) flush() {
 
 	// flush acknowledges
 	ptr := buffer
-	for kcp.acklist.Len() > 0 {
+	for i, ack := range kcp.acklist {
 		size := len(buffer) - len(ptr)
 		if size+IKCP_OVERHEAD > int(kcp.mtu) {
 			kcp.output(buffer, size)
 			ptr = buffer
 		}
-		ack := heap.Pop(&kcp.acklist).(ackItem)
-		if ack.sn >= kcp.rcv_nxt || kcp.acklist.Len() == 0 {
+		// filter jitters caused by bufferbloat
+		if ack.sn >= kcp.rcv_nxt || len(kcp.acklist)-1 == i {
 			seg.sn, seg.ts = ack.sn, ack.ts
 			ptr = seg.encode(ptr)
 		}
@@ -730,8 +715,6 @@ func (kcp *KCP) flush() {
 		resent = 0xffffffff
 	}
 
-	rtomin := (kcp.rx_rto >> 3)
-
 	// flush data segments
 	var lostSegs, fastRetransSegs, earlyRetransSegs uint64
 	for k := range kcp.snd_buf {
@@ -742,7 +725,7 @@ func (kcp *KCP) flush() {
 			needsend = true
 			segment.xmit++
 			segment.rto = kcp.rx_rto
-			segment.resendts = current + segment.rto + rtomin
+			segment.resendts = current + segment.rto
 		} else if _itimediff(current, segment.resendts) >= 0 {
 			needsend = true
 			segment.xmit++
@@ -874,7 +857,8 @@ func (kcp *KCP) Update() {
 // Important to reduce unnacessary ikcp_update invoking. use it to
 // schedule ikcp_update (eg. implementing an epoll-like mechanism,
 // or optimize ikcp_update when handling massive kcp connections)
-func (kcp *KCP) Check(current uint32) uint32 {
+func (kcp *KCP) Check() uint32 {
+	current := currentMs()
 	ts_flush := kcp.ts_flush
 	tm_flush := int32(0x7fffffff)
 	tm_packet := int32(0x7fffffff)
