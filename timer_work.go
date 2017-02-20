@@ -17,9 +17,12 @@ func timer_work(sess *Session, out *Buffer) {
 	if interval >= 1 { // 登录时长超过1分钟才开始统计rpm。防脉冲
 		rpm := float64(sess.PacketCount) / interval
 
-		if rpm > RPM_LIMIT {
+		if rpm > rpmLimit {
 			sess.Flag |= SESS_KICKED_OUT
-			log.Error("玩家RPM太高 RPM:", rpm)
+			log.WithFields(log.Fields{
+				"userid": sess.UserId,
+				"rpm":    rpm,
+			}).Error("RPM")
 			return
 		}
 	}

@@ -17,7 +17,7 @@ func agent(sess *Session, in chan []byte, out *Buffer) {
 	defer utils.PrintPanicStack()
 
 	// init session
-	sess.MQ = make(chan pb.Game_Frame, DEFAULT_MQ_SIZE)
+	sess.MQ = make(chan pb.Game_Frame, 512)
 	sess.ConnectTime = time.Now()
 	sess.LastPacketTime = time.Now()
 	// minute timer

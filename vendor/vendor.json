@@ -45,16 +45,10 @@
 			"revisionTime": "2016-03-02T07:53:16Z"
 		},
 		{
-			"checksumSHA1": "hX+j017F4PEtIUGflAneDtLC6hs=",
-			"path": "github.com/klauspost/crc32",
-			"revision": "19b0b332c9e4516a6370a0456e6182c3b5036720",
-			"revisionTime": "2016-02-19T14:26:09Z"
-		},
-		{
-			"checksumSHA1": "usPITw9YHaAFn1FzTRX6PzV+EuA=",
+			"checksumSHA1": "R6ZJqxEJuMBY8jA/xw2JM9Hef1o=",
 			"path": "github.com/klauspost/reedsolomon",
-			"revision": "467733eb9c209042fb37d2074a5b6be33a529be0",
-			"revisionTime": "2016-07-06T19:06:00Z"
+			"revision": "5abf0ee302ccf4834e84f63ff74eca3e8b88e4e2",
+			"revisionTime": "2017-02-19T10:13:22Z"
 		},
 		{
 			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
@@ -69,16 +63,10 @@
 			"revisionTime": "2016-05-31T12:29:44Z"
 		},
 		{
-			"checksumSHA1": "XUDkkxPT9Big03O+C/hVKthpNFo=",
+			"checksumSHA1": "ECgQtW1JAO6N9RHKc17BQI2f8wI=",
 			"path": "github.com/xtaci/kcp-go",
-			"revision": "19d53b22d361e5277c64e9e1db4e77707a0b124e",
-			"revisionTime": "2017-02-18T03:28:40Z"
-		},
-		{
-			"checksumSHA1": "9k2RbR3Z651NhoCR3n21e/u/Fw8=",
-			"path": "github.com/xtaci/reedsolomon",
-			"revision": "7bbd3662bdabfaafbe1552513e42a976fe7e7f55",
-			"revisionTime": "2017-01-30T04:06:13Z"
+			"revision": "2909e3c79de05b5974a066e4361aa5edfa392fca",
+			"revisionTime": "2017-02-19T11:14:06Z"
 		},
 		{
 			"checksumSHA1": "JsJdKXhz87gWenMwBeejTOeNE7k=",

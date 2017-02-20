@@ -94,9 +94,9 @@ func tcpServer() {
 			continue
 		}
 		// set socket read buffer
-		conn.SetReadBuffer(SO_RCVBUF)
+		conn.SetReadBuffer(sendBuffer)
 		// set socket write buffer
-		conn.SetWriteBuffer(SO_SNDBUF)
+		conn.SetWriteBuffer(receiveBuffer)
 		// start a goroutine for every incoming connection for reading
 		go handleClient(conn)
 
@@ -115,6 +115,16 @@ func udpServer() {
 	checkError(err)
 	log.Info("udp listening on:", l.Addr())
 	lis := l.(*kcp.Listener)
+
+	if err := lis.SetReadBuffer(udpBuffer); err != nil {
+		log.Println(err)
+	}
+	if err := lis.SetWriteBuffer(udpBuffer); err != nil {
+		log.Println(err)
+	}
+	if err := lis.SetDSCP(tosEF); err != nil {
+		log.Println(err)
+	}
 
 	// loop accepting
 	for {
@@ -176,7 +186,7 @@ func handleClient(conn net.Conn) {
 		// solve dead link problem:
 		// physical disconnection without any communcation between client and server
 		// will cause the read to block FOREVER, so a timeout is a rescue.
-		conn.SetReadDeadline(time.Now().Add(TCP_READ_DEADLINE * time.Second))
+		conn.SetReadDeadline(time.Now().Add(readDeadline * time.Second))
 
 		// read 2B header
 		n, err := io.ReadFull(conn, header)
