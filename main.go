@@ -18,10 +18,6 @@ import (
 )
 
 const (
-	_port = ":8888" // the incoming address for this agent, you can use docker -p to map ports
-)
-
-const (
 	SERVICE = "[AGENT]"
 )
 
@@ -66,8 +62,8 @@ func main() {
 			startup(c)
 
 			// listeners
-			go tcpServer()
-			go udpServer()
+			go tcpServer(c.String("listen"))
+			go udpServer(c.String("listen"))
 
 			// wait forever
 			select {}
@@ -76,9 +72,9 @@ func main() {
 	app.Run(os.Args)
 }
 
-func tcpServer() {
+func tcpServer(addr string) {
 	// resolve address & start listening
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", _port)
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	checkError(err)
 
 	listener, err := net.ListenTCP("tcp", tcpAddr)
@@ -110,8 +106,8 @@ func tcpServer() {
 	}
 }
 
-func udpServer() {
-	l, err := kcp.Listen(_port)
+func udpServer(addr string) {
+	l, err := kcp.Listen(addr)
 	checkError(err)
 	log.Info("udp listening on:", l.Addr())
 	lis := l.(*kcp.Listener)
