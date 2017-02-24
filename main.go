@@ -21,6 +21,19 @@ const (
 	SERVICE = "[AGENT]"
 )
 
+var (
+	// 网络拥塞控制和削峰
+	readDeadline  = time.Duration(15)       // 秒(没有网络包进入的最大间隔)
+	receiveBuffer = 32767    // 每个连接的接收缓冲区
+	sendBuffer    = 65535    // 每个连接的发送缓冲区
+	udpBuffer     = 16777216 // UDP监听器的socket buffer
+	tosEF         = 46       // Expedited Forwarding (EF)
+)
+
+var (
+	rpmLimit = 200.0 // Request Per Minute
+)
+
 func main() {
 	log.SetLevel(log.DebugLevel)
 
@@ -52,18 +65,63 @@ func main() {
 				Value: cli.NewStringSlice("snowflake-10000", "game-10000"),
 				Usage: "auto-discovering services",
 			},
+			&cli.IntFlag{
+				Name:"read-dead-line",
+				Value:15,
+				Usage:"秒(没有网络包进入的最大间隔)",
+			},
+			&cli.IntFlag{
+				Name:"receive-buffer",
+				Value:32767,
+				Usage:"每个连接的接收缓冲区",
+			},
+			&cli.IntFlag{
+				Name:"send-buffer",
+				Value:65535,
+				Usage:"每个连接的发送缓冲区",
+			},
+			&cli.IntFlag{
+				Name:"udp-buffer",
+				Value:16777216,
+				Usage:"UDP监听器的socket buffer",
+			},
+			&cli.IntFlag{
+				Name:"tos-expedited-forwarding",
+				Value:46,
+				Usage:"Expedited Forwarding (EF)",
+			},
+			&cli.IntFlag{
+				Name:"rpm-limit",
+				Value:200,
+				Usage:"Request Per Minute",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			log.Println("listen:", c.String("listen"))
 			log.Println("etcd-hosts:", c.StringSlice("etcd-hosts"))
 			log.Println("etcd-root:", c.String("etcd-root"))
 			log.Println("services:", c.StringSlice("services"))
+			log.Println("read-dead-line:", c.Int("read-dead-line"))
+			log.Println("send-buffer:", c.Int("send-buffer"))
+			log.Println("receive-buffer:", c.Int("receive-buffer"))
+			log.Println("udp-buffer:", c.Int("udp-buffer"))
+			log.Println("tos-expedited-forwarding:", c.Int("tos-expedited-forwarding"))
+			log.Println("rpm-limit:", c.Int("rpm-limit"))
 			// init services
 			startup(c)
 
 			// listeners
 			go tcpServer(c.String("listen"))
 			go udpServer(c.String("listen"))
+
+			//setup net param
+			readDeadline=c.Duration("read-dead-line")
+			receiveBuffer=c.Int("send-buffer")
+			sendBuffer=c.Int("send-buffer")
+			udpBuffer=c.Int("udp-buffer")
+			tosEF=c.Int("tos-expedited-forwarding")
+
+			rpmLimit=c.Float64("rpm-limit")
 
 			// wait forever
 			select {}
