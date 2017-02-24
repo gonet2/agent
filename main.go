@@ -107,12 +107,6 @@ func main() {
 			log.Println("udp-buffer:", c.Int("udp-buffer"))
 			log.Println("tos-expedited-forwarding:", c.Int("tos-expedited-forwarding"))
 			log.Println("rpm-limit:", c.Int("rpm-limit"))
-			// init services
-			startup(c)
-
-			// listeners
-			go tcpServer(c.String("listen"))
-			go udpServer(c.String("listen"))
 
 			//setup net param
 			readDeadline=c.Duration("read-dead-line")
@@ -122,6 +116,12 @@ func main() {
 			tosEF=c.Int("tos-expedited-forwarding")
 
 			rpmLimit=c.Float64("rpm-limit")
+			// init services
+			startup(c)
+
+			// listeners
+			go tcpServer(c.String("listen"))
+			go udpServer(c.String("listen"))
 
 			// wait forever
 			select {}
