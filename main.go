@@ -22,15 +22,6 @@ const (
 )
 
 var (
-	// 网络拥塞控制和削峰
-	readDeadline  = time.Duration(15)       // 秒(没有网络包进入的最大间隔)
-	receiveBuffer = 32767    // 每个连接的接收缓冲区
-	sendBuffer    = 65535    // 每个连接的发送缓冲区
-	udpBuffer     = 16777216 // UDP监听器的socket buffer
-	tosEF         = 46       // Expedited Forwarding (EF)
-)
-
-var (
 	rpmLimit = 200.0 // Request Per Minute
 )
 
@@ -65,35 +56,40 @@ func main() {
 				Value: cli.NewStringSlice("snowflake-10000", "game-10000"),
 				Usage: "auto-discovering services",
 			},
-			&cli.IntFlag{
-				Name:"read-deadline",
-				Value:15,
-				Usage:"秒(没有网络包进入的最大间隔)",
+			&cli.DurationFlag{
+				Name:  "read-deadline",
+				Value: 15 * time.Second,
+				Usage: "Read Timeout",
 			},
 			&cli.IntFlag{
-				Name:"receive-buffer",
-				Value:32767,
-				Usage:"每个连接的接收缓冲区",
+				Name:  "sockbuf",
+				Value: 32767,
+				Usage: "per connection tcp socket buffer",
 			},
 			&cli.IntFlag{
-				Name:"send-buffer",
-				Value:65535,
-				Usage:"每个连接的发送缓冲区",
+				Name:  "udp-sockbuf",
+				Value: 16777216,
+				Usage: "global UDP socket buffer",
 			},
 			&cli.IntFlag{
-				Name:"udp-buffer",
-				Value:16777216,
-				Usage:"UDP监听器的socket buffer",
+				Name:  "udp-sndwnd",
+				Value: 32,
+				Usage: "per connection UDP send window",
 			},
 			&cli.IntFlag{
-				Name:"tos-expedited-forwarding",
-				Value:46,
-				Usage:"Expedited Forwarding (EF)",
+				Name:  "udp-rcvwnd",
+				Value: 32,
+				Usage: "per connection UDP recv window",
 			},
 			&cli.IntFlag{
-				Name:"rpm-limit",
-				Value:200,
-				Usage:"Request Per Minute",
+				Name:  "tos",
+				Value: 46,
+				Usage: "Expedited Forwarding (EF)",
+			},
+			&cli.IntFlag{
+				Name:  "rpm-limit",
+				Value: 200,
+				Usage: "Request Per Minute",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -101,27 +97,30 @@ func main() {
 			log.Println("etcd-hosts:", c.StringSlice("etcd-hosts"))
 			log.Println("etcd-root:", c.String("etcd-root"))
 			log.Println("services:", c.StringSlice("services"))
-			log.Println("read-deadline:", c.Int("read-deadline"))
-			log.Println("send-buffer:", c.Int("send-buffer"))
-			log.Println("receive-buffer:", c.Int("receive-buffer"))
-			log.Println("udp-buffer:", c.Int("udp-buffer"))
-			log.Println("tos-expedited-forwarding:", c.Int("tos-expedited-forwarding"))
+			log.Println("read-deadline:", c.Duration("read-deadline"))
+			log.Println("sockbuf:", c.Int("sockbuf"))
+			log.Println("udp-sockbuf:", c.Int("udp-sockbuf"))
+			log.Println("udp-sndwnd:", c.Int("udp-sndwnd"))
+			log.Println("udp-rcvwnd:", c.Int("udp-rcvwnd"))
+			log.Println("tos:", c.Int("tos"))
 			log.Println("rpm-limit:", c.Int("rpm-limit"))
 
 			//setup net param
-			readDeadline=c.Duration("read-deadline")
-			receiveBuffer=c.Int("send-buffer")
-			sendBuffer=c.Int("send-buffer")
-			udpBuffer=c.Int("udp-buffer")
-			tosEF=c.Int("tos-expedited-forwarding")
+			listen := c.String("listen")
+			readDeadline := c.Duration("read-deadline")
+			sockbuf := c.Int("sockbuf")
+			udp_sockbuf := c.Int("udp-sockbuf")
+			tos := c.Int("tos")
+			sndwnd := c.Int("udp-sndwnd")
+			rcvwnd := c.Int("udp-rcvwnd")
+			rpmLimit = c.Float64("rpm-limit")
 
-			rpmLimit=c.Float64("rpm-limit")
 			// init services
 			startup(c)
 
 			// listeners
-			go tcpServer(c.String("listen"))
-			go udpServer(c.String("listen"))
+			go tcpServer(listen, readDeadline, sockbuf)
+			go udpServer(listen, readDeadline, udp_sockbuf, tos, sndwnd, rcvwnd)
 
 			// wait forever
 			select {}
@@ -130,7 +129,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func tcpServer(addr string) {
+func tcpServer(addr string, readDeadline time.Duration, sockbuf int) {
 	// resolve address & start listening
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	checkError(err)
@@ -148,11 +147,11 @@ func tcpServer(addr string) {
 			continue
 		}
 		// set socket read buffer
-		conn.SetReadBuffer(sendBuffer)
+		conn.SetReadBuffer(sockbuf)
 		// set socket write buffer
-		conn.SetWriteBuffer(receiveBuffer)
+		conn.SetWriteBuffer(sockbuf)
 		// start a goroutine for every incoming connection for reading
-		go handleClient(conn)
+		go handleClient(conn, readDeadline)
 
 		// check server close signal
 		select {
@@ -164,19 +163,19 @@ func tcpServer(addr string) {
 	}
 }
 
-func udpServer(addr string) {
+func udpServer(addr string, readDeadline time.Duration, sockbuf, tos, sndwnd, rcvwnd int) {
 	l, err := kcp.Listen(addr)
 	checkError(err)
 	log.Info("udp listening on:", l.Addr())
 	lis := l.(*kcp.Listener)
 
-	if err := lis.SetReadBuffer(udpBuffer); err != nil {
+	if err := lis.SetReadBuffer(sockbuf); err != nil {
 		log.Println(err)
 	}
-	if err := lis.SetWriteBuffer(udpBuffer); err != nil {
+	if err := lis.SetWriteBuffer(sockbuf); err != nil {
 		log.Println(err)
 	}
-	if err := lis.SetDSCP(tosEF); err != nil {
+	if err := lis.SetDSCP(tos); err != nil {
 		log.Println(err)
 	}
 
@@ -188,13 +187,13 @@ func udpServer(addr string) {
 			continue
 		}
 		// set kcp parameters
-		conn.SetWindowSize(32, 32)
+		conn.SetWindowSize(sndwnd, rcvwnd)
 		conn.SetNoDelay(1, 20, 1, 1)
 		conn.SetKeepAlive(0) // require application ping
 		conn.SetStreamMode(true)
 
 		// start a goroutine for every incoming connection for reading
-		go handleClient(conn)
+		go handleClient(conn, readDeadline)
 	}
 }
 
@@ -203,7 +202,7 @@ func udpServer(addr string) {
 // each packet is defined as :
 // | 2B size |     DATA       |
 //
-func handleClient(conn net.Conn) {
+func handleClient(conn net.Conn, readDeadline time.Duration) {
 	defer utils.PrintPanicStack()
 	// for reading the 2-Byte header
 	header := make([]byte, 2)
