@@ -68,7 +68,7 @@ func main() {
 			},
 			&cli.IntFlag{
 				Name:  "udp-sockbuf",
-				Value: 16777216,
+				Value: 4194304,
 				Usage: "global UDP socket buffer",
 			},
 			&cli.IntFlag{
@@ -239,7 +239,7 @@ func handleClient(conn net.Conn, readDeadline time.Duration) {
 		// solve dead link problem:
 		// physical disconnection without any communcation between client and server
 		// will cause the read to block FOREVER, so a timeout is a rescue.
-		conn.SetReadDeadline(time.Now().Add(readDeadline * time.Second))
+		conn.SetReadDeadline(time.Now().Add(readDeadline))
 
 		// read 2B header
 		n, err := io.ReadFull(conn, header)
