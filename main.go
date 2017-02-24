@@ -17,14 +17,6 @@ import (
 	cli "gopkg.in/urfave/cli.v2"
 )
 
-const (
-	SERVICE = "[AGENT]"
-)
-
-var (
-	rpmLimit = 200.0 // Request Per Minute
-)
-
 func main() {
 	log.SetLevel(log.DebugLevel)
 
@@ -137,10 +129,11 @@ func main() {
 			sndwnd := c.Int("udp-sndwnd")
 			rcvwnd := c.Int("udp-rcvwnd")
 			nodelay, interval, resend, nc := c.Int("nodelay"), c.Int("interval"), c.Int("resend"), c.Int("nc")
-			rpmLimit = c.Float64("rpm-limit")
 
 			// init services
 			startup(c)
+			// init timer
+			initTimer(c.Int("rpm-limit"))
 
 			// listeners
 			go tcpServer(listen, readDeadline, sockbuf)

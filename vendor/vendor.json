@@ -63,10 +63,10 @@
 			"revisionTime": "2016-05-31T12:29:44Z"
 		},
 		{
-			"checksumSHA1": "ECgQtW1JAO6N9RHKc17BQI2f8wI=",
+			"checksumSHA1": "QFCO0MG0LYiF05pIfENvFGcDHOU=",
 			"path": "github.com/xtaci/kcp-go",
-			"revision": "2909e3c79de05b5974a066e4361aa5edfa392fca",
-			"revisionTime": "2017-02-19T11:14:06Z"
+			"revision": "210b760f336ef885d0f120f77d144a018fd83825",
+			"revisionTime": "2017-02-21T10:20:28Z"
 		},
 		{
 			"checksumSHA1": "JsJdKXhz87gWenMwBeejTOeNE7k=",
