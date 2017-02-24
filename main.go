@@ -66,7 +66,7 @@ func main() {
 				Usage: "auto-discovering services",
 			},
 			&cli.IntFlag{
-				Name:"read-dead-line",
+				Name:"read-deadline",
 				Value:15,
 				Usage:"秒(没有网络包进入的最大间隔)",
 			},
@@ -101,7 +101,7 @@ func main() {
 			log.Println("etcd-hosts:", c.StringSlice("etcd-hosts"))
 			log.Println("etcd-root:", c.String("etcd-root"))
 			log.Println("services:", c.StringSlice("services"))
-			log.Println("read-dead-line:", c.Int("read-dead-line"))
+			log.Println("read-deadline:", c.Int("read-deadline"))
 			log.Println("send-buffer:", c.Int("send-buffer"))
 			log.Println("receive-buffer:", c.Int("receive-buffer"))
 			log.Println("udp-buffer:", c.Int("udp-buffer"))
@@ -109,7 +109,7 @@ func main() {
 			log.Println("rpm-limit:", c.Int("rpm-limit"))
 
 			//setup net param
-			readDeadline=c.Duration("read-dead-line")
+			readDeadline=c.Duration("read-deadline")
 			receiveBuffer=c.Int("send-buffer")
 			sendBuffer=c.Int("send-buffer")
 			udpBuffer=c.Int("udp-buffer")
