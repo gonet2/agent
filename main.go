@@ -34,7 +34,9 @@ func main() {
 	// open profiling
 	go http.ListenAndServe("0.0.0.0:6060", nil)
 	app := &cli.App{
-		Name: "agent",
+		Name:    "agent",
+		Usage:   "a gateway for games with stream multiplexing",
+		Version: "2.0",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "listen",
@@ -59,7 +61,7 @@ func main() {
 			&cli.DurationFlag{
 				Name:  "read-deadline",
 				Value: 15 * time.Second,
-				Usage: "Read Timeout",
+				Usage: "per connection read timeout",
 			},
 			&cli.IntFlag{
 				Name:  "sockbuf",
@@ -69,7 +71,7 @@ func main() {
 			&cli.IntFlag{
 				Name:  "udp-sockbuf",
 				Value: 4194304,
-				Usage: "global UDP socket buffer",
+				Usage: "UDP listener socket buffer",
 			},
 			&cli.IntFlag{
 				Name:  "udp-sndwnd",
@@ -82,14 +84,34 @@ func main() {
 				Usage: "per connection UDP recv window",
 			},
 			&cli.IntFlag{
-				Name:  "tos",
+				Name:  "dscp",
 				Value: 46,
-				Usage: "Expedited Forwarding (EF)",
+				Usage: "set DSCP(6bit)",
+			},
+			&cli.IntFlag{
+				Name:  "nodelay",
+				Value: 1,
+				Usage: "ikcp_nodelay()",
+			},
+			&cli.IntFlag{
+				Name:  "interval",
+				Value: 20,
+				Usage: "ikcp_nodelay()",
+			},
+			&cli.IntFlag{
+				Name:  "resend",
+				Value: 1,
+				Usage: "ikcp_nodelay()",
+			},
+			&cli.IntFlag{
+				Name:  "nc",
+				Value: 1,
+				Usage: "ikcp_nodelay()",
 			},
 			&cli.IntFlag{
 				Name:  "rpm-limit",
 				Value: 200,
-				Usage: "Request Per Minute",
+				Usage: "per connection rpm limit",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -102,17 +124,19 @@ func main() {
 			log.Println("udp-sockbuf:", c.Int("udp-sockbuf"))
 			log.Println("udp-sndwnd:", c.Int("udp-sndwnd"))
 			log.Println("udp-rcvwnd:", c.Int("udp-rcvwnd"))
-			log.Println("tos:", c.Int("tos"))
+			log.Println("dscp:", c.Int("dscp"))
 			log.Println("rpm-limit:", c.Int("rpm-limit"))
+			log.Println("nodelay parameters:", c.Int("nodelay"), c.Int("interval"), c.Int("resend"), c.Int("nc"))
 
 			//setup net param
 			listen := c.String("listen")
 			readDeadline := c.Duration("read-deadline")
 			sockbuf := c.Int("sockbuf")
 			udp_sockbuf := c.Int("udp-sockbuf")
-			tos := c.Int("tos")
+			dscp := c.Int("dscp")
 			sndwnd := c.Int("udp-sndwnd")
 			rcvwnd := c.Int("udp-rcvwnd")
+			nodelay, interval, resend, nc := c.Int("nodelay"), c.Int("interval"), c.Int("resend"), c.Int("nc")
 			rpmLimit = c.Float64("rpm-limit")
 
 			// init services
@@ -120,7 +144,7 @@ func main() {
 
 			// listeners
 			go tcpServer(listen, readDeadline, sockbuf)
-			go udpServer(listen, readDeadline, udp_sockbuf, tos, sndwnd, rcvwnd)
+			go udpServer(listen, readDeadline, udp_sockbuf, dscp, sndwnd, rcvwnd, nodelay, interval, resend, nc)
 
 			// wait forever
 			select {}
@@ -163,7 +187,10 @@ func tcpServer(addr string, readDeadline time.Duration, sockbuf int) {
 	}
 }
 
-func udpServer(addr string, readDeadline time.Duration, sockbuf, tos, sndwnd, rcvwnd int) {
+func udpServer(addr string, readDeadline time.Duration,
+	sockbuf, dscp, sndwnd, rcvwnd,
+	nodelay, interval, resend, nc int) {
+
 	l, err := kcp.Listen(addr)
 	checkError(err)
 	log.Info("udp listening on:", l.Addr())
@@ -175,7 +202,7 @@ func udpServer(addr string, readDeadline time.Duration, sockbuf, tos, sndwnd, rc
 	if err := lis.SetWriteBuffer(sockbuf); err != nil {
 		log.Println(err)
 	}
-	if err := lis.SetDSCP(tos); err != nil {
+	if err := lis.SetDSCP(dscp); err != nil {
 		log.Println(err)
 	}
 
@@ -188,7 +215,7 @@ func udpServer(addr string, readDeadline time.Duration, sockbuf, tos, sndwnd, rc
 		}
 		// set kcp parameters
 		conn.SetWindowSize(sndwnd, rcvwnd)
-		conn.SetNoDelay(1, 20, 1, 1)
+		conn.SetNoDelay(nodelay, interval, resend, nc)
 		conn.SetKeepAlive(0) // require application ping
 		conn.SetStreamMode(true)
 
