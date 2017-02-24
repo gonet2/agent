@@ -169,14 +169,6 @@ func tcpServer(addr string, readDeadline time.Duration, sockbuf int) {
 		conn.SetWriteBuffer(sockbuf)
 		// start a goroutine for every incoming connection for reading
 		go handleClient(conn, readDeadline)
-
-		// check server close signal
-		select {
-		case <-die:
-			listener.Close()
-			return
-		default:
-		}
 	}
 }
 
@@ -190,13 +182,13 @@ func udpServer(addr string, readDeadline time.Duration,
 	lis := l.(*kcp.Listener)
 
 	if err := lis.SetReadBuffer(sockbuf); err != nil {
-		log.Println(err)
+		log.Println("SetReadBuffer", err)
 	}
 	if err := lis.SetWriteBuffer(sockbuf); err != nil {
-		log.Println(err)
+		log.Println("SetWriteBuffer", err)
 	}
 	if err := lis.SetDSCP(dscp); err != nil {
-		log.Println(err)
+		log.Println("SetDSCP", err)
 	}
 
 	// loop accepting
