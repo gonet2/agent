@@ -201,7 +201,6 @@ func udpServer(addr string, readDeadline time.Duration,
 		// set kcp parameters
 		conn.SetWindowSize(sndwnd, rcvwnd)
 		conn.SetNoDelay(nodelay, interval, resend, nc)
-		conn.SetKeepAlive(0) // require application ping
 		conn.SetStreamMode(true)
 
 		// start a goroutine for every incoming connection for reading

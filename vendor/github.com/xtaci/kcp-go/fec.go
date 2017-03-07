@@ -12,24 +12,23 @@ const (
 	fecHeaderSizePlus2 = fecHeaderSize + 2 // plus 2B data size
 	typeData           = 0xf1
 	typeFEC            = 0xf2
-	fecExpire          = 30000 // 30s
 )
 
 type (
 	// FEC defines forward error correction for packets
 	FEC struct {
-		rx           []fecPacket // ordered receive queue
-		rxlimit      int         // queue size limit
+		rxlimit      int // queue size limit
 		dataShards   int
 		parityShards int
 		shardSize    int
 		next         uint32 // next seqid
-		enc          reedsolomon.Encoder
-		shards       [][]byte
-		shards2      [][]byte // for calcECC
-		shardsflag   []bool
 		paws         uint32 // Protect Against Wrapped Sequence numbers
-		lastCheck    uint32
+		enc          reedsolomon.Encoder
+
+		rx          []fecPacket // ordered receive queue
+		decodeCache [][]byte
+		encodeCache [][]byte
+		shardsflag  []bool
 	}
 
 	fecPacket struct {
@@ -59,14 +58,14 @@ func newFEC(rxlimit, dataShards, parityShards int) *FEC {
 		return nil
 	}
 	fec.enc = enc
-	fec.shards = make([][]byte, fec.shardSize)
-	fec.shards2 = make([][]byte, fec.shardSize)
+	fec.decodeCache = make([][]byte, fec.shardSize)
+	fec.encodeCache = make([][]byte, fec.shardSize)
 	fec.shardsflag = make([]bool, fec.shardSize)
 	return fec
 }
 
-// decode a fec packet
-func (fec *FEC) decode(data []byte) fecPacket {
+// decodeBytes a fec packet
+func (fec *FEC) decodeBytes(data []byte) fecPacket {
 	var pkt fecPacket
 	pkt.seqid = binary.LittleEndian.Uint32(data)
 	pkt.flag = binary.LittleEndian.Uint16(data[4:])
@@ -88,28 +87,11 @@ func (fec *FEC) markFEC(data []byte) {
 	binary.LittleEndian.PutUint32(data, fec.next)
 	binary.LittleEndian.PutUint16(data[4:], typeFEC)
 	fec.next++
-	if fec.next >= fec.paws { // paws would only occurs in markFEC
-		fec.next = 0
-	}
+	fec.next %= fec.paws
 }
 
-// input a fec packet
-func (fec *FEC) input(pkt fecPacket) (recovered [][]byte) {
-	// expiration
-	now := currentMs()
-	if now-fec.lastCheck >= fecExpire {
-		var rx []fecPacket
-		for k := range fec.rx {
-			if now-fec.rx[k].ts < fecExpire {
-				rx = append(rx, fec.rx[k])
-			} else {
-				xmitBuf.Put(fec.rx[k].data)
-			}
-		}
-		fec.rx = rx
-		fec.lastCheck = now
-	}
-
+// Decode a fec packet
+func (fec *FEC) Decode(pkt fecPacket) (recovered [][]byte) {
 	// insertion
 	n := len(fec.rx) - 1
 	insertIdx := 0
@@ -151,9 +133,9 @@ func (fec *FEC) input(pkt fecPacket) (recovered [][]byte) {
 		numDataShard := 0
 		first := -1
 		maxlen := 0
-		shards := fec.shards
+		shards := fec.decodeCache
 		shardsflag := fec.shardsflag
-		for k := range fec.shards {
+		for k := range fec.decodeCache {
 			shards[k] = nil
 			shardsflag[k] = false
 		}
@@ -226,11 +208,12 @@ func (fec *FEC) input(pkt fecPacket) (recovered [][]byte) {
 	return
 }
 
-func (fec *FEC) calcECC(data [][]byte, offset, maxlen int) (ecc [][]byte) {
+// Encode a group of datashards
+func (fec *FEC) Encode(data [][]byte, offset, maxlen int) (ecc [][]byte) {
 	if len(data) != fec.shardSize {
 		return nil
 	}
-	shards := fec.shards2
+	shards := fec.encodeCache
 	for k := range shards {
 		shards[k] = data[k][offset:maxlen]
 	}
