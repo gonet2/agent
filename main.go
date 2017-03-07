@@ -76,6 +76,11 @@ func main() {
 				Usage: "per connection UDP recv window",
 			},
 			&cli.IntFlag{
+				Name:  "udp-mtu",
+				Value: 1350,
+				Usage: "MTU of UDP packets",
+			},
+			&cli.IntFlag{
 				Name:  "dscp",
 				Value: 46,
 				Usage: "set DSCP(6bit)",
@@ -116,6 +121,7 @@ func main() {
 			log.Println("udp-sockbuf:", c.Int("udp-sockbuf"))
 			log.Println("udp-sndwnd:", c.Int("udp-sndwnd"))
 			log.Println("udp-rcvwnd:", c.Int("udp-rcvwnd"))
+			log.Println("udp-mtu:", c.Int("udp-mtu"))
 			log.Println("dscp:", c.Int("dscp"))
 			log.Println("rpm-limit:", c.Int("rpm-limit"))
 			log.Println("nodelay parameters:", c.Int("nodelay"), c.Int("interval"), c.Int("resend"), c.Int("nc"))
@@ -128,6 +134,7 @@ func main() {
 			dscp := c.Int("dscp")
 			sndwnd := c.Int("udp-sndwnd")
 			rcvwnd := c.Int("udp-rcvwnd")
+			mtu := c.Int("udp-mtu")
 			nodelay, interval, resend, nc := c.Int("nodelay"), c.Int("interval"), c.Int("resend"), c.Int("nc")
 
 			// init services
@@ -137,7 +144,7 @@ func main() {
 
 			// listeners
 			go tcpServer(listen, readDeadline, sockbuf)
-			go udpServer(listen, readDeadline, udp_sockbuf, dscp, sndwnd, rcvwnd, nodelay, interval, resend, nc)
+			go udpServer(listen, readDeadline, udp_sockbuf, dscp, sndwnd, rcvwnd, nodelay, interval, resend, nc, mtu)
 
 			// wait forever
 			select {}
@@ -174,7 +181,8 @@ func tcpServer(addr string, readDeadline time.Duration, sockbuf int) {
 
 func udpServer(addr string, readDeadline time.Duration,
 	sockbuf, dscp, sndwnd, rcvwnd,
-	nodelay, interval, resend, nc int) {
+	nodelay, interval, resend, nc,
+	mtu int) {
 
 	l, err := kcp.Listen(addr)
 	checkError(err)
