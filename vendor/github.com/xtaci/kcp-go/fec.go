@@ -21,16 +21,20 @@ type (
 		dataShards   int
 		parityShards int
 		shardSize    int
-		next         uint32 // next seqid
-		paws         uint32 // Protect Against Wrapped Sequence numbers
-		enc          reedsolomon.Encoder
+		next         uint32      // next seqid
+		paws         uint32      // Protect Against Wrapped Sequence numbers
+		rx           []fecPacket // ordered receive queue
 
-		rx          []fecPacket // ordered receive queue
+		// caches
 		decodeCache [][]byte
 		encodeCache [][]byte
 		shardsflag  []bool
+
+		// RS encoder
+		enc reedsolomon.Encoder
 	}
 
+	// fecPacket is a decoded FEC packet
 	fecPacket struct {
 		seqid uint32
 		flag  uint16
@@ -99,7 +103,7 @@ func (fec *FEC) Decode(pkt fecPacket) (recovered [][]byte) {
 		if pkt.seqid == fec.rx[i].seqid { // de-duplicate
 			xmitBuf.Put(pkt.data)
 			return nil
-		} else if pkt.seqid > fec.rx[i].seqid { // insertion
+		} else if _itimediff(pkt.seqid, fec.rx[i].seqid) > 0 { // insertion
 			insertIdx = i + 1
 			break
 		}
@@ -128,6 +132,7 @@ func (fec *FEC) Decode(pkt fecPacket) (recovered [][]byte) {
 		searchEnd = len(fec.rx) - 1
 	}
 
+	// re-construct datashards
 	if searchEnd > searchBegin && searchEnd-searchBegin+1 >= fec.dataShards {
 		numshard := 0
 		numDataShard := 0
@@ -142,9 +147,9 @@ func (fec *FEC) Decode(pkt fecPacket) (recovered [][]byte) {
 
 		for i := searchBegin; i <= searchEnd; i++ {
 			seqid := fec.rx[i].seqid
-			if seqid > shardEnd {
+			if _itimediff(seqid, shardEnd) > 0 {
 				break
-			} else if seqid >= shardBegin {
+			} else if _itimediff(seqid, shardBegin) >= 0 {
 				shards[seqid%uint32(fec.shardSize)] = fec.rx[i].data
 				shardsflag[seqid%uint32(fec.shardSize)] = true
 				numshard++
