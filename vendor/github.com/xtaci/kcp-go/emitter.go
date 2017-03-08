@@ -7,17 +7,19 @@ import (
 
 var defaultEmitter Emitter
 
-const emitQueue = 8192
+const emitQueue = 2048
 
 func init() {
 	defaultEmitter.init()
 }
 
 type (
+	// packet emit request
 	emitPacket struct {
-		conn    net.PacketConn
-		to      net.Addr
-		data    []byte
+		conn net.PacketConn
+		to   net.Addr
+		data []byte
+		// mark this packet should recycle to global xmitBuf
 		recycle bool
 	}
 
@@ -36,7 +38,7 @@ func (e *Emitter) init() {
 func (e *Emitter) emitTask() {
 	for p := range e.ch {
 		if n, err := p.conn.WriteTo(p.data, p.to); err == nil {
-			atomic.AddUint64(&DefaultSnmp.OutSegs, 1)
+			atomic.AddUint64(&DefaultSnmp.OutPkts, 1)
 			atomic.AddUint64(&DefaultSnmp.OutBytes, uint64(n))
 		}
 		if p.recycle {
