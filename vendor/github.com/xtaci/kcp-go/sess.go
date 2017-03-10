@@ -1,6 +1,7 @@
 package kcp
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"hash/crc32"
@@ -33,7 +34,7 @@ const (
 	cryptHeaderSize = nonceSize + crcSize
 
 	// maximum packet size
-	mtuLimit = 2048
+	mtuLimit = 1500
 
 	// packet receiving channel limit
 	rxQueueLimit = 2048
@@ -72,8 +73,9 @@ type (
 		block BlockCrypt     // block encryption
 
 		// kcp receiving is based on packets
-		// sockbuff turns packets into stream
-		sockbuff []byte
+		// recvbuf turns packets into stream
+		recvbuf []byte
+		buffer  bytes.Buffer
 
 		fec           *FEC     // forward error correction
 		fecDataShards [][]byte // data shards cache
@@ -120,6 +122,7 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 	sess.conn = conn
 	sess.l = l
 	sess.block = block
+	sess.recvbuf = make([]byte, mtuLimit)
 
 	// FEC initialization
 	sess.fec = newFEC(rxFECMulti*(dataShards+parityShards), dataShards, parityShards)
@@ -172,9 +175,8 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 func (s *UDPSession) Read(b []byte) (n int, err error) {
 	for {
 		s.mu.Lock()
-		if len(s.sockbuff) > 0 { // copy from buffer
-			n = copy(b, s.sockbuff)
-			s.sockbuff = s.sockbuff[n:]
+		if s.buffer.Len() > 0 { // copy from buffer
+			n, _ = s.buffer.Read(b)
 			s.mu.Unlock()
 			return n, nil
 		}
@@ -191,17 +193,21 @@ func (s *UDPSession) Read(b []byte) (n int, err error) {
 			}
 		}
 
-		if n := s.kcp.PeekSize(); n > 0 { // data arrived
-			if len(b) >= n {
+		if size := s.kcp.PeekSize(); size > 0 { // data arrived
+			atomic.AddUint64(&DefaultSnmp.BytesReceived, uint64(size))
+			if len(b) >= size { // direct write
 				s.kcp.Recv(b)
-			} else {
-				buf := make([]byte, n)
-				s.kcp.Recv(buf)
-				n = copy(b, buf)
-				s.sockbuff = buf[n:] // store remaining bytes into sockbuff for next read
+				s.mu.Unlock()
+				return size, nil
 			}
+
+			if len(s.recvbuf) < size { // resize buf
+				s.recvbuf = make([]byte, size)
+			}
+			s.kcp.Recv(s.recvbuf)
+			n = copy(b, s.recvbuf[:size])     // direct copy
+			s.buffer.Write(s.recvbuf[n:size]) // save rests to bytes.Buffer
 			s.mu.Unlock()
-			atomic.AddUint64(&DefaultSnmp.BytesReceived, uint64(n))
 			return n, nil
 		}
 
