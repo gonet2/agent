@@ -18,9 +18,15 @@
 
 [![Claude_Shannon](shannon.jpg)](https://en.wikipedia.org/wiki/Claude_Shannon)
 
+> *(Claude Elwood Shannon)*
+
 ## Introduction
 
-kcp-go is a full-featured ***Reliable-UDP*** library for golang. It provides ***reliable, ordered, and error-checked*** delivery of a stream of octets between applications running on hosts communicating over an IP network.
+**kcp-go** is a full-featured ***Reliable-UDP*** library for golang. It provides ***reliable, ordered, and error-checked*** delivery of a stream of octets between applications running on hosts communicating over an IP network. 
+
+**kcp-go** offers ***Production-Grade*** quality, it has been well tested and it's running on millions of devices(from low-end MIPS routers to high-end servers). 
+
+[Lastest Release](https://github.com/xtaci/kcp-go/releases)
 
 ## Features
 
@@ -56,15 +62,15 @@ lis, err := kcp.ListenWithOptions(":10000", nil, 10, 3)
 
 ## Performance
 ```
-  型号名称：	MacBook Pro
-  型号标识符：	MacBookPro12,1
-  处理器名称：	Intel Core i5
-  处理器速度：	2.7 GHz
-  处理器数目：	1
-  核总数：	2
-  L2 缓存（每个核）：	256 KB
-  L3 缓存：	3 MB
-  内存：	8 GB
+  Model Name:	MacBook Pro
+  Model Identifier:	MacBookPro12,1
+  Processor Name:	Intel Core i5
+  Processor Speed:	2.7 GHz
+  Number of Processors:	1
+  Total Number of Cores:	2
+  L2 Cache (per Core):	256 KB
+  L3 Cache:	3 MB
+  Memory:	8 GB
 ```
 ```
 $ go test -run=^$ -v -bench .
@@ -105,6 +111,7 @@ A: A standalone `agent` or `gate` server for kcp-go is suggested, not only for C
 2. https://github.com/getlantern/lantern -- Lantern delivers fast access to the open Internet. 
 3. https://github.com/smallnest/rpcx -- A RPC service framework based on net/rpc like alibaba Dubbo and weibo Motan.
 4. https://github.com/gonet2/agent -- A gateway for games with stream multiplexing.
+5. https://github.com/syncthing/syncthing -- Open Source Continuous File Synchronization.
 
 ## Links
 

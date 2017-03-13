@@ -73,6 +73,8 @@ type (
 		// recvbuf turns packets into stream
 		recvbuf []byte
 		buffer  bytes.Buffer
+		// extended output buffer(with header)
+		ext []byte
 
 		fec           *FEC     // forward error correction
 		fecDataShards [][]byte // data shards cache
@@ -83,12 +85,12 @@ type (
 		fecPayloadOffset int // FEC payload offset in packet
 
 		// settings
-		remote         net.Addr  // remote peer address
-		rd             time.Time // read deadline
-		wd             time.Time // write deadline
-		headerSize     int       // the overall header size added before KCP frame
-		updateInterval int32     // interval in seconds to call kcp.flush()
-		ackNoDelay     bool      // send ack immediately for each incoming packet
+		remote         net.Addr      // remote peer address
+		rd             time.Time     // read deadline
+		wd             time.Time     // write deadline
+		headerSize     int           // the overall header size added before KCP frame
+		updateInterval time.Duration // interval in seconds to call kcp.flush()
+		ackNoDelay     bool          // send ack immediately for each incoming packet
 
 		// notifications
 		die          chan struct{} // notify session has Closed
@@ -120,6 +122,7 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 	sess.l = l
 	sess.block = block
 	sess.recvbuf = make([]byte, mtuLimit)
+	sess.ext = make([]byte, mtuLimit)
 
 	// FEC initialization
 	sess.fec = newFEC(rxFECMulti*(dataShards+parityShards), dataShards, parityShards)
@@ -150,7 +153,6 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 		}
 	})
 	sess.kcp.SetMtu(IKCP_MTU_DEF - sess.headerSize)
-	sess.kcp.setFEC(dataShards, parityShards)
 
 	updater.addSession(sess)
 	if sess.l == nil { // it's a client connection
@@ -378,7 +380,7 @@ func (s *UDPSession) SetNoDelay(nodelay, interval, resend, nc int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.kcp.NoDelay(nodelay, interval, resend, nc)
-	atomic.StoreInt32(&s.updateInterval, int32(interval))
+	s.updateInterval = time.Duration(interval) * time.Millisecond
 }
 
 // SetDSCP sets the 6bit DSCP field of IP header, no effect if it's accepted from Listener
@@ -424,13 +426,12 @@ func (s *UDPSession) SetWriteBuffer(bytes int) error {
 // 1. FEC
 // 2. CRC32
 // 3. Encryption
-// 4. emit to emitTask
-// 5. emitTask WriteTo kernel
+// 4. WriteTo kernel
 func (s *UDPSession) output(buf []byte) {
 	var ecc [][]byte
 
 	// extend buf's header space
-	ext := xmitBuf.Get().([]byte)[:s.headerSize+len(buf)]
+	ext := s.ext[:s.headerSize+len(buf)]
 	copy(ext[s.headerSize:], buf)
 
 	// FEC stage
@@ -488,24 +489,38 @@ func (s *UDPSession) output(buf []byte) {
 		}
 	}
 
-	// emit stage
-	defaultEmitter.emit(emitPacket{s.conn, s.remote, ext, true})
+	// WriteTo kernel
+	nbytes := 0
+	npkts := 0
+	// if mrand.Intn(100) < 50 {
+	if n, err := s.conn.WriteTo(ext, s.remote); err == nil {
+		nbytes += n
+		npkts++
+	}
+	// }
+
 	if ecc != nil {
 		for k := range ecc {
-			defaultEmitter.emit(emitPacket{s.conn, s.remote, ecc[k], false})
+			if n, err := s.conn.WriteTo(ecc[k], s.remote); err == nil {
+				nbytes += n
+				npkts++
+			}
 		}
 	}
+	atomic.AddUint64(&DefaultSnmp.OutPkts, uint64(npkts))
+	atomic.AddUint64(&DefaultSnmp.OutBytes, uint64(nbytes))
 }
 
 // kcp update, returns interval for next calling
-func (s *UDPSession) update() time.Duration {
+func (s *UDPSession) update() (interval time.Duration) {
 	s.mu.Lock()
 	s.kcp.flush(false)
 	if s.kcp.WaitSnd() < int(s.kcp.Cwnd()) {
 		s.notifyWriteEvent()
 	}
+	interval = s.updateInterval
 	s.mu.Unlock()
-	return time.Duration(atomic.LoadInt32(&s.updateInterval)) * time.Millisecond
+	return
 }
 
 // GetConv gets conversation id of a session

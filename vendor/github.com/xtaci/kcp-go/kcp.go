@@ -144,9 +144,8 @@ type KCP struct {
 
 	acklist []ackItem
 
-	buffer                 []byte
-	output                 Output
-	datashard, parityshard int
+	buffer []byte
+	output Output
 }
 
 type ackItem struct {
@@ -629,39 +628,26 @@ func (kcp *KCP) flush(ackOnly bool) {
 	seg.una = kcp.rcv_nxt
 
 	// flush acknowledges
-	var required []ackItem
-	for i, ack := range kcp.acklist {
-		// filter necessary acks only
-		if ack.sn >= kcp.rcv_nxt || len(kcp.acklist)-1 == i {
-			required = append(required, kcp.acklist[i])
-		}
-	}
-	kcp.acklist = nil
-
 	ptr := buffer
-	maxBatchSize := kcp.mtu / IKCP_OVERHEAD
-	for len(required) > 0 {
-		var batchSize int
-		if kcp.datashard > 0 && kcp.parityshard > 0 { // try triggering FEC
-			batchSize = int(_ibound_(1, uint32(len(required)/kcp.datashard), maxBatchSize))
-		} else {
-			batchSize = int(_ibound_(1, uint32(len(required)), maxBatchSize))
-		}
-
-		for len(required) >= batchSize {
-			for i := 0; i < batchSize; i++ {
-				ack := required[i]
-				seg.sn, seg.ts = ack.sn, ack.ts
-				ptr = seg.encode(ptr)
-			}
-			size := len(buffer) - len(ptr)
+	for i, ack := range kcp.acklist {
+		size := len(buffer) - len(ptr)
+		if size+IKCP_OVERHEAD > int(kcp.mtu) {
 			kcp.output(buffer, size)
 			ptr = buffer
-			required = required[batchSize:]
+		}
+		// filter jitters caused by bufferbloat
+		if ack.sn >= kcp.rcv_nxt || len(kcp.acklist)-1 == i {
+			seg.sn, seg.ts = ack.sn, ack.ts
+			ptr = seg.encode(ptr)
 		}
 	}
+	kcp.acklist = kcp.acklist[0:0]
 
-	if ackOnly { // flush acks only
+	if ackOnly { // flash remain ack segments
+		size := len(buffer) - len(ptr)
+		if size > 0 {
+			kcp.output(buffer, size)
+		}
 		return
 	}
 
@@ -954,12 +940,6 @@ func (kcp *KCP) Check() uint32 {
 	}
 
 	return current + minimal
-}
-
-// set datashard,parityshard info for some optimizations
-func (kcp *KCP) setFEC(datashard, parityshard int) {
-	kcp.datashard = datashard
-	kcp.parityshard = parityshard
 }
 
 // SetMtu changes MTU size, default is 1400
