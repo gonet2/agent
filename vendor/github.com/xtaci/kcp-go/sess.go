@@ -38,6 +38,9 @@ const (
 
 	// FEC keeps rxFECMulti* (dataShard+parityShard) ordered packets in memory
 	rxFECMulti = 3
+
+	// accept backlog
+	acceptBacklog = 128
 )
 
 const (
@@ -154,7 +157,10 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 	})
 	sess.kcp.SetMtu(IKCP_MTU_DEF - sess.headerSize)
 
+	// add current session to the global updater,
+	// which periodically calls sess.update()
 	updater.addSession(sess)
+
 	if sess.l == nil { // it's a client connection
 		go sess.readLoop()
 		atomic.AddUint64(&DefaultSnmp.ActiveOpens, 1)
@@ -170,11 +176,11 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 	return sess
 }
 
-// Read implements the Conn Read method.
+// Read implements net.Conn
 func (s *UDPSession) Read(b []byte) (n int, err error) {
 	for {
 		s.mu.Lock()
-		if s.buffer.Len() > 0 { // copy from buffer
+		if s.buffer.Len() > 0 { // copy from buffer into b
 			n, _ = s.buffer.Read(b)
 			s.mu.Unlock()
 			return n, nil
@@ -186,26 +192,26 @@ func (s *UDPSession) Read(b []byte) (n int, err error) {
 		}
 
 		if !s.rd.IsZero() {
-			if time.Now().After(s.rd) { // timeout
+			if time.Now().After(s.rd) { // read timeout
 				s.mu.Unlock()
 				return 0, errTimeout{}
 			}
 		}
 
-		if size := s.kcp.PeekSize(); size > 0 { // data arrived
+		if size := s.kcp.PeekSize(); size > 0 { // peek data size from kcp
 			atomic.AddUint64(&DefaultSnmp.BytesReceived, uint64(size))
-			if len(b) >= size { // direct write
+			if len(b) >= size { // direct write to b
 				s.kcp.Recv(b)
 				s.mu.Unlock()
 				return size, nil
 			}
 
-			if len(s.recvbuf) < size { // resize buf
+			if len(s.recvbuf) < size { // resize kcp receive buffer
 				s.recvbuf = make([]byte, size)
 			}
 			s.kcp.Recv(s.recvbuf)
-			n = copy(b, s.recvbuf[:size])     // direct copy
-			s.buffer.Write(s.recvbuf[n:size]) // save rests to bytes.Buffer
+			n = copy(b, s.recvbuf[:size])     // direct copy to b
+			s.buffer.Write(s.recvbuf[n:size]) // save rest bytes to bytes.Buffer
 			s.mu.Unlock()
 			return n, nil
 		}
@@ -232,7 +238,7 @@ func (s *UDPSession) Read(b []byte) (n int, err error) {
 	}
 }
 
-// Write implements the Conn Write method.
+// Write implements net.Conn
 func (s *UDPSession) Write(b []byte) (n int, err error) {
 	for {
 		s.mu.Lock()
@@ -242,12 +248,13 @@ func (s *UDPSession) Write(b []byte) (n int, err error) {
 		}
 
 		if !s.wd.IsZero() {
-			if time.Now().After(s.wd) { // timeout
+			if time.Now().After(s.wd) { // write timeout
 				s.mu.Unlock()
 				return 0, errTimeout{}
 			}
 		}
 
+		// api flow control
 		if s.kcp.WaitSnd() < int(s.kcp.Cwnd()) {
 			n = len(b)
 			for {
@@ -425,6 +432,7 @@ func (s *UDPSession) SetWriteBuffer(bytes int) error {
 
 // output pipeline entry
 // steps for output data processing:
+// 0. Header extends
 // 1. FEC
 // 2. CRC32
 // 3. Encryption
@@ -632,7 +640,7 @@ func (s *UDPSession) receiver(ch chan []byte) {
 
 // read loop for client session
 func (s *UDPSession) readLoop() {
-	chPacket := make(chan []byte, 1)
+	chPacket := make(chan []byte)
 	go s.receiver(chPacket)
 
 	for {
@@ -673,13 +681,13 @@ type (
 		fec          *FEC           // FEC mock initialization
 		conn         net.PacketConn // the underlying packet connection
 
-		sessions    map[string]*UDPSession // all sessions accepted by this Listener
-		chAccepts   chan *UDPSession       // Listen() backlog
-		chDeadlinks chan net.Addr          // session close queue
-		headerSize  int                    // the overall header size added before KCP frame
-		die         chan struct{}          // notify the listener has closed
-		rd          atomic.Value           // read deadline for Accept()
-		wd          atomic.Value
+		sessions        map[string]*UDPSession // all sessions accepted by this Listener
+		chAccepts       chan *UDPSession       // Listen() backlog
+		chSessionClosed chan net.Addr          // session close queue
+		headerSize      int                    // the overall header size added before KCP frame
+		die             chan struct{}          // notify the listener has closed
+		rd              atomic.Value           // read deadline for Accept()
+		wd              atomic.Value
 	}
 
 	// incoming packet
@@ -691,7 +699,7 @@ type (
 
 // monitor incoming data for all connections of server
 func (l *Listener) monitor() {
-	chPacket := make(chan inPacket, 1)
+	chPacket := make(chan inPacket)
 	go l.receiver(chPacket)
 	for {
 		select {
@@ -718,24 +726,26 @@ func (l *Listener) monitor() {
 				addr := from.String()
 				s, ok := l.sessions[addr]
 				if !ok { // new session
-					var conv uint32
-					convValid := false
-					if l.fec != nil {
-						isfec := binary.LittleEndian.Uint16(data[4:])
-						if isfec == typeData {
-							conv = binary.LittleEndian.Uint32(data[fecHeaderSizePlus2:])
+					if len(l.chAccepts) < cap(l.chAccepts) { // do not let new session overwhelm accept queue
+						var conv uint32
+						convValid := false
+						if l.fec != nil {
+							isfec := binary.LittleEndian.Uint16(data[4:])
+							if isfec == typeData {
+								conv = binary.LittleEndian.Uint32(data[fecHeaderSizePlus2:])
+								convValid = true
+							}
+						} else {
+							conv = binary.LittleEndian.Uint32(data)
 							convValid = true
 						}
-					} else {
-						conv = binary.LittleEndian.Uint32(data)
-						convValid = true
-					}
 
-					if convValid {
-						s := newUDPSession(conv, l.dataShards, l.parityShards, l, l.conn, from, l.block)
-						s.kcpInput(data)
-						l.sessions[addr] = s
-						l.chAccepts <- s
+						if convValid {
+							s := newUDPSession(conv, l.dataShards, l.parityShards, l, l.conn, from, l.block)
+							s.kcpInput(data)
+							l.sessions[addr] = s
+							l.chAccepts <- s
+						}
 					}
 				} else {
 					s.kcpInput(data)
@@ -743,7 +753,7 @@ func (l *Listener) monitor() {
 			}
 
 			xmitBuf.Put(raw)
-		case deadlink := <-l.chDeadlinks:
+		case deadlink := <-l.chSessionClosed:
 			delete(l.sessions, deadlink.String())
 		case <-l.die:
 			return
@@ -841,7 +851,7 @@ func (l *Listener) Close() error {
 // closeSession notify the listener that a session has closed
 func (l *Listener) closeSession(remote net.Addr) {
 	select {
-	case l.chDeadlinks <- remote:
+	case l.chSessionClosed <- remote:
 	case <-l.die:
 	}
 }
@@ -876,8 +886,8 @@ func ServeConn(block BlockCrypt, dataShards, parityShards int, conn net.PacketCo
 	l := new(Listener)
 	l.conn = conn
 	l.sessions = make(map[string]*UDPSession)
-	l.chAccepts = make(chan *UDPSession, 1024)
-	l.chDeadlinks = make(chan net.Addr, 1024)
+	l.chAccepts = make(chan *UDPSession, acceptBacklog)
+	l.chSessionClosed = make(chan net.Addr)
 	l.die = make(chan struct{})
 	l.dataShards = dataShards
 	l.parityShards = parityShards
