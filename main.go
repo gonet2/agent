@@ -77,7 +77,7 @@ func main() {
 			},
 			&cli.IntFlag{
 				Name:  "udp-mtu",
-				Value: 1350,
+				Value: 1280,
 				Usage: "MTU of UDP packets",
 			},
 			&cli.IntFlag{
@@ -210,6 +210,7 @@ func udpServer(addr string, readDeadline time.Duration,
 		conn.SetWindowSize(sndwnd, rcvwnd)
 		conn.SetNoDelay(nodelay, interval, resend, nc)
 		conn.SetStreamMode(true)
+		conn.SetMtu(mtu)
 
 		// start a goroutine for every incoming connection for reading
 		go handleClient(conn, readDeadline)
