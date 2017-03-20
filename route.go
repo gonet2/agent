@@ -13,8 +13,8 @@ import (
 	"agent/utils"
 )
 
-// client protocol handle proxy
-func proxy_user_request(sess *Session, p []byte) []byte {
+// route client protocol
+func route(sess *Session, p []byte) []byte {
 	start := time.Now()
 	defer utils.PrintPanicStack(sess, p)
 	// 解密
