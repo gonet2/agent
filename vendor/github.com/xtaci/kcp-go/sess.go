@@ -1,7 +1,6 @@
 package kcp
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"hash/crc32"
@@ -75,7 +74,7 @@ type (
 		// kcp receiving is based on packets
 		// recvbuf turns packets into stream
 		recvbuf []byte
-		buffer  bytes.Buffer
+		bufptr  []byte
 		// extended output buffer(with header)
 		ext []byte
 
@@ -122,7 +121,6 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 	sess.l = l
 	sess.block = block
 	sess.recvbuf = make([]byte, mtuLimit)
-	sess.ext = make([]byte, mtuLimit)
 
 	// FEC initialization
 	sess.fecDecoder = newFECDecoder(rxFECMulti*(dataShards+parityShards), dataShards, parityShards)
@@ -138,6 +136,12 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 	}
 	if sess.fecEncoder != nil {
 		sess.headerSize += fecHeaderSizePlus2
+	}
+
+	// only allocate extended packet buffer
+	// when the extra header is required
+	if sess.headerSize > 0 {
+		sess.ext = make([]byte, mtuLimit)
 	}
 
 	sess.kcp = NewKCP(conv, func(buf []byte, size int) {
@@ -170,8 +174,9 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 func (s *UDPSession) Read(b []byte) (n int, err error) {
 	for {
 		s.mu.Lock()
-		if s.buffer.Len() > 0 { // copy from buffer into b
-			n, _ = s.buffer.Read(b)
+		if len(s.bufptr) > 0 { // copy from buffer into b
+			n = copy(b, s.bufptr)
+			s.bufptr = s.bufptr[n:]
 			s.mu.Unlock()
 			return n, nil
 		}
@@ -179,13 +184,6 @@ func (s *UDPSession) Read(b []byte) (n int, err error) {
 		if s.isClosed {
 			s.mu.Unlock()
 			return 0, errors.New(errBrokenPipe)
-		}
-
-		if !s.rd.IsZero() {
-			if time.Now().After(s.rd) { // read timeout
-				s.mu.Unlock()
-				return 0, errTimeout{}
-			}
 		}
 
 		if size := s.kcp.PeekSize(); size > 0 { // peek data size from kcp
@@ -196,19 +194,30 @@ func (s *UDPSession) Read(b []byte) (n int, err error) {
 				return size, nil
 			}
 
-			if len(s.recvbuf) < size { // resize kcp receive buffer
+			// resize kcp receive buffer
+			// to make sure recvbuf has enough capacity
+			if cap(s.recvbuf) < size {
 				s.recvbuf = make([]byte, size)
 			}
+
+			// resize recvbuf slice length
+			s.recvbuf = s.recvbuf[:size]
 			s.kcp.Recv(s.recvbuf)
-			n = copy(b, s.recvbuf[:size])     // direct copy to b
-			s.buffer.Write(s.recvbuf[n:size]) // save rest bytes to bytes.Buffer
+			n = copy(b, s.recvbuf)   // copy to b
+			s.bufptr = s.recvbuf[n:] // update pointer
 			s.mu.Unlock()
 			return n, nil
 		}
 
+		// read deadline
 		var timeout *time.Timer
 		var c <-chan time.Time
 		if !s.rd.IsZero() {
+			if time.Now().After(s.rd) {
+				s.mu.Unlock()
+				return 0, errTimeout{}
+			}
+
 			delay := s.rd.Sub(time.Now())
 			timeout = time.NewTimer(delay)
 			c = timeout.C
@@ -237,13 +246,6 @@ func (s *UDPSession) Write(b []byte) (n int, err error) {
 			return 0, errors.New(errBrokenPipe)
 		}
 
-		if !s.wd.IsZero() {
-			if time.Now().After(s.wd) { // write timeout
-				s.mu.Unlock()
-				return 0, errTimeout{}
-			}
-		}
-
 		// api flow control
 		if s.kcp.WaitSnd() < int(s.kcp.Cwnd()) {
 			n = len(b)
@@ -265,9 +267,14 @@ func (s *UDPSession) Write(b []byte) (n int, err error) {
 			return n, nil
 		}
 
+		// write deadline
 		var timeout *time.Timer
 		var c <-chan time.Time
 		if !s.wd.IsZero() {
+			if time.Now().After(s.wd) {
+				s.mu.Unlock()
+				return 0, errTimeout{}
+			}
 			delay := s.wd.Sub(time.Now())
 			timeout = time.NewTimer(delay)
 			c = timeout.C
@@ -440,8 +447,11 @@ func (s *UDPSession) output(buf []byte) {
 	var ecc [][]byte
 
 	// extend buf's header space
-	ext := s.ext[:s.headerSize+len(buf)]
-	copy(ext[s.headerSize:], buf)
+	ext := buf
+	if s.headerSize > 0 {
+		ext = s.ext[:s.headerSize+len(buf)]
+		copy(ext[s.headerSize:], buf)
+	}
 
 	// FEC stage
 	if s.fecEncoder != nil {
@@ -595,6 +605,7 @@ func (s *UDPSession) receiver(ch chan []byte) {
 			select {
 			case ch <- data[:n]:
 			case <-s.die:
+				return
 			}
 		} else if err != nil {
 			return
@@ -734,6 +745,7 @@ func (l *Listener) receiver(ch chan inPacket) {
 			select {
 			case ch <- inPacket{from, data[:n]}:
 			case <-l.die:
+				return
 			}
 		} else if err != nil {
 			return
