@@ -83,7 +83,7 @@ func main() {
 			&cli.IntFlag{
 				Name:  "udp-mtu",
 				Value: 1280,
-				Usage: "MTU of UDP packets",
+				Usage: "MTU of UDP packets, without IP(20) + UDP(8)",
 			},
 			&cli.IntFlag{
 				Name:  "dscp",
