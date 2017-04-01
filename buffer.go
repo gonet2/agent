@@ -39,7 +39,10 @@ func (buf *Buffer) send(sess *Session, data []byte) {
 	}
 
 	// queue the data for sending
-	buf.pending <- data
+	select {
+	case buf.pending <- data:
+	default: // packet will be dropped if txqueuelen exceeds
+	}
 	return
 }
 
@@ -77,9 +80,9 @@ func (buf *Buffer) raw_send(data []byte) bool {
 }
 
 // create a associated write buffer for a session
-func new_buffer(conn net.Conn, ctrl chan struct{}) *Buffer {
+func new_buffer(conn net.Conn, ctrl chan struct{}, txqueuelen int) *Buffer {
 	buf := Buffer{conn: conn}
-	buf.pending = make(chan []byte)
+	buf.pending = make(chan []byte, txqueuelen)
 	buf.ctrl = ctrl
 	buf.cache = make([]byte, packet.PACKET_LIMIT+2)
 	return &buf

@@ -56,6 +56,11 @@ func main() {
 				Usage: "per connection read timeout",
 			},
 			&cli.IntFlag{
+				Name:  "txqueuelen",
+				Value: 128,
+				Usage: "per connection output message queue, packet will be dropped if exceeds",
+			},
+			&cli.IntFlag{
 				Name:  "sockbuf",
 				Value: 32767,
 				Usage: "per connection tcp socket buffer",
@@ -117,6 +122,7 @@ func main() {
 			log.Println("etcd-root:", c.String("etcd-root"))
 			log.Println("services:", c.StringSlice("services"))
 			log.Println("read-deadline:", c.Duration("read-deadline"))
+			log.Println("txqueuelen:", c.Int("txqueuelen"))
 			log.Println("sockbuf:", c.Int("sockbuf"))
 			log.Println("udp-sockbuf:", c.Int("udp-sockbuf"))
 			log.Println("udp-sndwnd:", c.Int("udp-sndwnd"))
@@ -131,6 +137,7 @@ func main() {
 			readDeadline := c.Duration("read-deadline")
 			sockbuf := c.Int("sockbuf")
 			udp_sockbuf := c.Int("udp-sockbuf")
+			txqueuelen := c.Int("txqueuelen")
 			dscp := c.Int("dscp")
 			sndwnd := c.Int("udp-sndwnd")
 			rcvwnd := c.Int("udp-rcvwnd")
@@ -143,8 +150,8 @@ func main() {
 			initTimer(c.Int("rpm-limit"))
 
 			// listeners
-			go tcpServer(listen, readDeadline, sockbuf)
-			go udpServer(listen, readDeadline, udp_sockbuf, dscp, sndwnd, rcvwnd, nodelay, interval, resend, nc, mtu)
+			go tcpServer(listen, readDeadline, sockbuf, txqueuelen)
+			go udpServer(listen, readDeadline, udp_sockbuf, dscp, sndwnd, rcvwnd, nodelay, interval, resend, nc, mtu, txqueuelen)
 
 			// wait forever
 			select {}
@@ -153,7 +160,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func tcpServer(addr string, readDeadline time.Duration, sockbuf int) {
+func tcpServer(addr string, readDeadline time.Duration, sockbuf, txqueuelen int) {
 	// resolve address & start listening
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	checkError(err)
@@ -175,14 +182,15 @@ func tcpServer(addr string, readDeadline time.Duration, sockbuf int) {
 		// set socket write buffer
 		conn.SetWriteBuffer(sockbuf)
 		// start a goroutine for every incoming connection for reading
-		go handleClient(conn, readDeadline)
+		go handleClient(conn, readDeadline, txqueuelen)
 	}
 }
 
 func udpServer(addr string, readDeadline time.Duration,
 	sockbuf, dscp, sndwnd, rcvwnd,
 	nodelay, interval, resend, nc,
-	mtu int) {
+	mtu,
+	txqueuelen int) {
 
 	l, err := kcp.Listen(addr)
 	checkError(err)
@@ -213,7 +221,7 @@ func udpServer(addr string, readDeadline time.Duration,
 		conn.SetMtu(mtu)
 
 		// start a goroutine for every incoming connection for reading
-		go handleClient(conn, readDeadline)
+		go handleClient(conn, readDeadline, txqueuelen)
 	}
 }
 
@@ -222,7 +230,7 @@ func udpServer(addr string, readDeadline time.Duration,
 // each packet is defined as :
 // | 2B size |     DATA       |
 //
-func handleClient(conn net.Conn, readDeadline time.Duration) {
+func handleClient(conn net.Conn, readDeadline time.Duration, txqueuelen int) {
 	defer utils.PrintPanicStack()
 	// for reading the 2-Byte header
 	header := make([]byte, 2)
@@ -247,7 +255,7 @@ func handleClient(conn net.Conn, readDeadline time.Duration) {
 	sess.Die = make(chan struct{})
 
 	// create a write buffer
-	out := new_buffer(conn, sess.Die)
+	out := new_buffer(conn, sess.Die, txqueuelen)
 	go out.start()
 
 	// start agent for PACKET processing
