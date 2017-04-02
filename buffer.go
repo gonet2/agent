@@ -42,6 +42,7 @@ func (buf *Buffer) send(sess *Session, data []byte) {
 	select {
 	case buf.pending <- data:
 	default: // packet will be dropped if txqueuelen exceeds
+		log.WithFields(log.Fields{"userid": sess.UserId, "ip": sess.IP}).Warning("pending full")
 	}
 	return
 }
