@@ -35,6 +35,6 @@ type Session struct {
 	PacketTime     time.Time // 当前包的到达时间
 	LastPacketTime time.Time // 前一个包到达时间
 
-	// RPS控制
-	PacketCount uint32 // 对收到的包进行计数，避免恶意发包
+	PacketCount     uint32 // 对收到的包进行计数，避免恶意发包
+	PacketCount1Min int    // 每分钟的包统计，用于RPM判断
 }

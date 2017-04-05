@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -20,18 +18,18 @@ func initTimer(rpm_limit int) {
 
 // 玩家1分钟定时器
 func timer_work(sess *Session, out *Buffer) {
-	// 发包频率控制，太高的RPS直接踢掉
-	interval := time.Now().Sub(sess.ConnectTime).Minutes()
-	if interval >= 1 { // 登录时长超过1分钟才开始统计rpm。防脉冲
-		rpm := float64(sess.PacketCount) / interval
+	defer func() {
+		sess.PacketCount1Min = 0
+	}()
 
-		if int(rpm) > rpmLimit {
-			sess.Flag |= SESS_KICKED_OUT
-			log.WithFields(log.Fields{
-				"userid": sess.UserId,
-				"rpm":    rpm,
-			}).Error("RPM")
-			return
-		}
+	// 发包频率控制，太高的RPS直接踢掉
+	if sess.PacketCount1Min > rpmLimit {
+		sess.Flag |= SESS_KICKED_OUT
+		log.WithFields(log.Fields{
+			"userid":  sess.UserId,
+			"count1m": sess.PacketCount1Min,
+			"total":   sess.PacketCount,
+		}).Error("RPM")
+		return
 	}
 }

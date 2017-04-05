@@ -45,6 +45,7 @@ func agent(sess *Session, in chan []byte, out *Buffer) {
 			}
 
 			sess.PacketCount++
+			sess.PacketCount1Min++
 			sess.PacketTime = time.Now()
 
 			if result := route(sess, msg); result != nil {
