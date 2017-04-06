@@ -245,6 +245,7 @@ func udpServer(config *Config) {
 //
 func handleClient(conn net.Conn, config *Config) {
 	defer utils.PrintPanicStack()
+	defer conn.Close()
 	// for reading the 2-Byte header
 	header := make([]byte, 2)
 	// the input channel for agent()

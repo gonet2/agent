@@ -55,9 +55,6 @@ func (buf *Buffer) start() {
 		case data := <-buf.pending:
 			buf.raw_send(data)
 		case <-buf.ctrl: // receive session end signal
-			close(buf.pending)
-			// close the connection
-			buf.conn.Close()
 			return
 		}
 	}
