@@ -102,6 +102,7 @@ func P_user_login_req(sess *Session, reader *packet.Packet) []byte {
 			select {
 			case sess.MQ <- *in:
 			case <-sess.Die:
+				return
 			}
 		}
 	}
