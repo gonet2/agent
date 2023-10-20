@@ -160,6 +160,6 @@ func PKT_user_snapshot(reader *packet.Packet) (tbl S_user_snapshot, err error) {
 
 func checkErr(err error) {
 	if err != nil {
-		panic("error occured in protocol module")
+		panic("error occurred in protocol module")
 	}
 }
